@@ -1,9 +1,5 @@
 
-  El problema es que el ícono de la URL de GitHub ya no funciona — Twitter/Twemoji cambió esa ruta.
 
-Vamos a usar un ícono de una URL confiable. Actualiza el `manifest.json` en GitHub con este contenido:
-
-```json
 {
   "name": "HuellaViva",
   "short_name": "HuellaViva",

@@ -1,18 +1,33 @@
 
-   {
+  El problema es que el ícono de la URL de GitHub ya no funciona — Twitter/Twemoji cambió esa ruta.
+
+Vamos a usar un ícono de una URL confiable. Actualiza el `manifest.json` en GitHub con este contenido:
+
+```json
+{
   "name": "HuellaViva",
   "short_name": "HuellaViva",
   "description": "Encuentra a tu mejor amigo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d1a",
-  "theme_color": "#ff6b35",
+  "background_color": "#F8F7FF",
+  "theme_color": "#7C3AED",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23ff6b35' rx='32'/><text y='130' x='96' font-size='120' text-anchor='middle'>🐾</text></svg>",
+      "src": "https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/72x72/1f43e.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/72x72/1f43e.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
+```
+
+¿Lo actualizas?

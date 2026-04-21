@@ -553,6 +553,11 @@ function verDetalle(id) {
   m.appendChild(card);
   m.onclick=(e)=>{if(e.target===m)document.body.removeChild(m);};
   document.body.appendChild(m);
+    <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js", { scope: "/" })
+      .then(() => console.log("Service Worker listo"))
+      .catch(err => console.log("Error:", err));
 }
 </script>
 </body>

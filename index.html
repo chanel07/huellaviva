@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#7C3AED"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <link rel="manifest" href="manifest.json"/>
+ <link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icono-192.png">
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -478,7 +479,13 @@ async function activarNotis() {
   }
 }
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js", { scope: "/" })
+    .then(() => console.log("Service Worker listo"))
+    .catch(err => console.log("Error SW:", err));
+}
+</script>
 
 function verDetalle(id) {
   const r = window._rep && window._rep[id];

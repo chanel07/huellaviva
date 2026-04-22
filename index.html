@@ -526,9 +526,7 @@ function verDetalle(id) {
   c.textContent='Cerrar';
   c.onclick=()=>document.body.removeChild(m);
   card.appendChild(c);
-  if (r.tipo === 'perdido') {
-    const enc = document.createElement('button');
-    enc.style.cssText = 'width:100%;background:#FEF3C7;color:#D97706;border:1px solid #FCD34D;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-top:8px;';
+ t-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-top:8px;';
     
     enc.onclick = async () => {
       if (!confirm('¿Confirmas que encontraste a tu perro?')) return;

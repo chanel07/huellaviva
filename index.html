@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>HuellaViva - Perros Perdidos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Etiquetas para la PWA (Progressive Web App) -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icono-192.png">
+  <meta name="theme-color" content="#7C3AED">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f9;
+      text-align: center;
+      color: #333;
+    }
+
+    header {
+      background-color: #7C3AED;
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      padding: 1rem;
+    }
+
+    .card {
+      background-color: white;
+      margin: 1rem auto;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+
+    button {
+      background-color: #7C3AED;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+        background-color: #6a2cd1;
+    }
+
+    input[type="text"], input[type="file"] {
+        width: calc(100% - 2rem);
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  🐶 HuellaViva
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h3>Reporta un perro perdido</h3>
+    <input type="text" placeholder="Nombre de tu mascota"><br>
+    <input type="file" accept="image/*"><br>
+    <button>Publicar Reporte</button>
+  </div>
+
+  <div class="card">
+    <h3>Últimos reportes</h3>
+    <p>Aquí se mostrarán los perros reportados como perdidos.</p>
+  </div>
+
+</div>
+
+<!-- Script para registrar el Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(registration => {
+          console.log('Service Worker registrado con éxito:', registration);
+        })
+        .catch(error => {
+          console.log('Error al registrar el Service Worker:', error);
+        });
+    });
+  }
+</script>
+
+</body>
+</html>

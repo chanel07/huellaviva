@@ -525,9 +525,9 @@ function verDetalle(id) {
   c.style.cssText='width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
   c.textContent='Cerrar';
   c.onclick=()=>document.body.removeChild(m);
-  card.appendChild(c);
+  
 
-  m.appendChild(card);
+  
   m.onclick=(e)=>{if(e.target===m)document.body.removeChild(m);};
   document.body.appendChild(m);
 }

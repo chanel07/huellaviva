@@ -509,19 +509,7 @@ function verDetalle(id) {
     t.href='tel:'+r.telefono;
     t.style.cssText='display:block;background:#10B981;color:#fff;padding:13px;border-radius:12px;text-align:center;text-decoration:none;font-weight:700;font-size:14px;margin-bottom:8px;';
     t.textContent='📞 Llamar: '+r.telefono;
-    card.appendChild(t);// card.appendChild(enc);
-  }
-  const w=document.createElement('button');
-  w.style.cssText='width:100%;background:#25D366;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
-  w.textContent='📲 Compartir en WhatsApp';
-  w.onclick=()=>compartirWA(r);
-  card.appendChild(w);
- 
-  
-   
-    
-  }
-  m.appendChild(card);
+  ;
   m.onclick=(e)=>{if(e.target===m)document.body.removeChild(m);};
   document.body.appendChild(m);
 }

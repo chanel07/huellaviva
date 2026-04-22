@@ -1,7 +1,5 @@
-self.addEventListener("install", e => {
-  console.log("SW instalado");
-});
-
-self.addEventListener("fetch", e => {
-  e.respondWith(fetch(e.request));
+// Service Worker Básico para permitir la instalación
+self.addEventListener('fetch', event => {
+  // Por ahora, solo permitimos que la app se instale.
+  // No se añade lógica de caché aún.
 });

@@ -516,26 +516,10 @@ function verDetalle(id) {
   w.textContent='📲 Compartir en WhatsApp';
   w.onclick=()=>compartirWA(r);
   card.appendChild(w);
-  const f=document.createElement('button');
-  f.style.cssText='width:100%;background:#1877F2;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
-  f.textContent='📘 Compartir en Facebook';
-  f.onclick=()=>compartirFB(r);
-  card.appendChild(f);
-  const c=document.createElement('button');
-  c.style.cssText='width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
-  c.textContent='Cerrar';
-  c.onclick=()=>document.body.removeChild(m);
-  card.appendChild(c);
-  if (r.tipo === 'perdido') {
+ 
+  
    
-      try {
-        await supabase('PATCH', 'reportes?id=eq.'+r.id, {activo: false, tipo: 'encontrado'});
-        document.body.removeChild(m);
-        showToast('¡Qué alegría! Reporte actualizado 🎉', 'success');
-        cargarCards('mapa');
-      } catch(e) { showToast('Error al actualizar', 'error'); }
-    };
-    card.appendChild(enc);
+    
   }
   m.appendChild(card);
   m.onclick=(e)=>{if(e.target===m)document.body.removeChild(m);};

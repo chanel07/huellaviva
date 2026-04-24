@@ -122,7 +122,27 @@
   <div style="margin-top:8px;display:flex;gap:6px;">
     <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0s;"></div>
     <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0.2s;"></div>
-    <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0.4s;"></div>
+    @keyframes caer {
+  0% { transform: translateY(0) rotate(0deg); opacity:1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
+}
+@keyframes fadeIn {
+  from { opacity:0; } to { opacity:1; }
+}
+@keyframes popIn {
+  from { transform:scale(0.5); opacity:0; }
+  to { transform:scale(1); opacity:1; }
+}
+@keyframes slideUp {
+  from { transform:translateY(20px); opacity:0; }
+  to { transform:translateY(0); opacity:1; }
+}
+@keyframes wiggle {
+  0%,100% { transform:rotate(0deg) scale(1); }
+  25% { transform:rotate(-15deg) scale(1.2); }
+  75% { transform:rotate(15deg) scale(1.2); }
+}
+</style>
   </div>
 </div>
 
@@ -334,6 +354,45 @@ function emojiPerro(raza) {
 }
 
 function mostrarModalExito() {
+  // Confetti
+  const colores = ['#7C3AED','#10B981','#F59E0B','#EF4444','#3B82F6','#EC4899'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.style.cssText = `
+      position:fixed;
+      top:-10px;
+      left:${Math.random()*100}vw;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      background:${colores[Math.floor(Math.random()*colores.length)]};
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+      z-index:99998;
+      animation:caer ${1.5+Math.random()*2}s ease-in forwards;
+      animation-delay:${Math.random()*0.8}s;
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+
+  // Modal
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.3s ease;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;animation:popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);';
+  card.innerHTML = [
+    '<div style="font-size:56px;margin-bottom:12px;animation:wiggle 0.5s ease 0.3s both;">🐾</div>',
+    '<div style="font-size:20px;font-weight:800;color:#1E1B4B;margin-bottom:8px;animation:slideUp 0.4s ease 0.2s both;">¡Reporte publicado!</div>',
+    '<div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px;animation:slideUp 0.4s ease 0.3s both;">Tu reporte ya está visible para toda la comunidad 🌍<br><br>Entre más personas lo vean,<br>más rápido vuelve a casa ❤️</div>',
+    '<a href="https://www.facebook.com/profile.php?id=61576506208917" target="_blank" style="display:block;background:#1877F2;color:#fff;padding:13px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;margin-bottom:10px;animation:slideUp 0.4s ease 0.4s both;">📘 Compartir en Facebook</a>'
+  ].join('');
+  const btn = document.createElement('button');
+  btn.textContent = 'Cerrar';
+  btn.style.cssText = 'width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;animation:slideUp 0.4s ease 0.5s both;';
+  btn.onclick = () => document.body.removeChild(m);
+  card.appendChild(btn);
+  m.appendChild(card);
+  document.body.appendChild(m);
+}
   const m = document.createElement('div');
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
   const card = document.createElement('div');

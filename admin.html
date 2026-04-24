@@ -237,7 +237,7 @@ function renderReportes() {
 
 async function marcarEncontrado(id) {
   try {
-    await supabaseFetch('PATCH', `reportes?id=eq.${id}`, { activo: false });
+    await supabaseFetch('PATCH', `reportes?id=eq.${id}`, { activo: true, tipo: 'encontrado' });
     const r = todosReportes.find(x => x.id === id);
     if (r) r.activo = false;
     actualizarStats();

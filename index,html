@@ -332,7 +332,6 @@ function emojiPerro(raza) {
   if (r.includes('pastor')) return '🦮';
   return '🐕';
 }
-
 function mostrarModalExito() {
 const colores = ['#7C3AED','#10B981','#F59E0B','#EF4444','#3B82F6','#EC4899'];
   for (let i = 0; i < 80; i++) {
@@ -341,6 +340,7 @@ const colores = ['#7C3AED','#10B981','#F59E0B','#EF4444','#3B82F6','#EC4899'];
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 4000);
   }
+  
 
   const m = document.createElement('div');
   const m = document.createElement('div');

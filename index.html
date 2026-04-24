@@ -327,8 +327,18 @@ function mostrarModalExito() {
 }
 
 function compartirFB(r) {
-  const url = 'https://huellaviva.vercel.app';
-  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+  const tipo = r.tipo === 'perdido' ? '🚨 PERRO PERDIDO' : r.tipo === 'encontrado' ? '🐾 PERRO ENCONTRADO' : '👁️ AVISTAMIENTO';
+  const msg = tipo + '\n\n'
+    + (r.nombre ? 'Nombre: ' + r.nombre + '\n' : '')
+    + (r.raza ? 'Raza: ' + r.raza + '\n' : '')
+    + (r.color ? 'Color: ' + r.color + '\n' : '')
+    + (r.ubicacion ? 'Ubicación: ' + r.ubicacion + '\n' : '')
+    + (r.recompensa ? 'Recompensa: ' + r.recompensa + '\n' : '')
+    + (r.telefono ? 'Contacto: ' + r.telefono + '\n' : '')
+    + '\n🔗 Ver mapa: https://huellaviva.vercel.app'
+    + '\n\n¡Comparte para ayudar! 🐾';
+  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent('https://huellaviva.vercel.app') + '&quote=' + encodeURIComponent(msg), '_blank');
+}
 }
 
 function compartirWA(r) {
@@ -521,7 +531,11 @@ function verDetalle(id) {
   w.textContent='📲 Compartir en WhatsApp';
   w.onclick=()=>compartirWA(r);
   card.appendChild(w);
-  
+  const f=document.createElement('button');
+  f.style.cssText='width:100%;background:#1877F2;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+  f.textContent='📘 Compartir en Facebook';
+  f.onclick=()=>compartirFB(r);
+  card.appendChild(f); 
   const c=document.createElement('button');
   c.style.cssText='width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
   c.textContent='Cerrar';

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#7C3AED"/>
+  <link rel="icon" type="image/png" href="/icon-192.png"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <title>Perros Perdidos en Santa Marta — Cómo Reportar y Encontrar Mascotas | HuellaViva</title>
+  <meta name="description" content="¿Perdiste tu perro en Santa Marta? HuellaViva te ayuda a reportar y encontrar mascotas perdidas en Santa Marta, Colombia. Gratis, rápido y con mapa en tiempo real.">
+  <meta name="keywords" content="perros perdidos Santa Marta, mascotas perdidas Santa Marta, cómo encontrar perro perdido Santa Marta, reportar perro perdido Colombia, perros hallados Santa Marta, HuellaViva app">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://huellavivaapp.com/about">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Perros Perdidos en Santa Marta — Cómo Reportar y Encontrar Mascotas">
+  <meta property="og:description" content="¿Perdiste tu perro en Santa Marta? HuellaViva conecta a la comunidad para encontrar mascotas perdidas al instante. Gratis y con mapa en tiempo real.">
+  <meta property="og:url" content="https://huellavivaapp.com/about">
+  <meta property="og:image" content="https://huellavivaapp.com/icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #F8F7FF; --surface: #FFFFFF; --surface2: #F3F2FF;
+      --primary: #7C3AED; --primary-light: #EDE9FE; --primary-dark: #5B21B6;
+      --green: #10B981; --red: #EF4444; --accent: #F59E0B;
+      --text: #1E1B4B; --muted: #6B7280; --border: #E5E7EB;
+      --shadow: 0 2px 8px rgba(0,0,0,0.10); --shadow-md: 0 6px 16px rgba(0,0,0,0.12);
+      --radius: 16px; --font: 'Plus Jakarta Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+    /* NAV */
+    .nav { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .logo-icon { width: 34px; height: 34px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; animation: heartbeat 5s ease-in-out infinite; }
+    @keyframes heartbeat { 0%,90%,100% { transform: scale(1); } 92% { transform: scale(1.18); } 96% { transform: scale(1.05); } 98% { transform: scale(1.15); } }
+    .logo-text { font-weight: 800; font-size: 18px; color: var(--text); letter-spacing: -0.5px; }
+    .logo-text span { color: var(--primary); }
+    .nav-btn { background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 20px; text-decoration: none; transition: all 0.2s; }
+    .nav-btn:hover { background: var(--primary-dark); }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 40px 20px 48px; text-align: center; color: #fff; position: relative; overflow: hidden; }
+    .hero::before { content: '🐾'; position: absolute; font-size: 120px; opacity: 0.07; top: -10px; right: -20px; }
+    .hero-tag { background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 14px; }
+    .hero h1 { font-size: 24px; font-weight: 800; line-height: 1.25; margin-bottom: 12px; letter-spacing: -0.5px; }
+    .hero p { font-size: 14px; opacity: 0.88; font-weight: 500; max-width: 360px; margin: 0 auto 24px; line-height: 1.6; }
+    .hero-btn { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: var(--primary); font-weight: 800; font-size: 14px; padding: 13px 28px; border-radius: 14px; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); transition: all 0.2s; }
+    .hero-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+
+    /* CONTENT */
+    .content { max-width: 680px; margin: 0 auto; padding: 24px 16px 100px; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 28px; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 26px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .stat-lbl { font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* SECTIONS */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .section-icon { font-size: 28px; margin-bottom: 10px; }
+    .section h2 { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 10px; letter-spacing: -0.3px; }
+    .section h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 16px 0 6px; }
+    .section p { font-size: 14px; color: var(--muted); line-height: 1.7; font-weight: 500; margin-bottom: 10px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+    .step { display: flex; gap: 14px; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+    .step-body { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .step-desc { font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.5; }
+
+    /* FAQ */
+    .faq-item { border-top: 1px solid var(--border); padding: 14px 0; }
+    .faq-item:first-child { border-top: none; padding-top: 0; }
+    .faq-q { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .faq-a { font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.6; }
+
+    /* TIPS */
+    .tips { display: flex; flex-direction: column; gap: 10px; }
+    .tip { display: flex; gap: 10px; align-items: flex-start; background: var(--surface2); border-radius: 12px; padding: 12px; }
+    .tip-icon { font-size: 20px; flex-shrink: 0; }
+    .tip-text { font-size: 13px; color: var(--muted); font-weight: 500; line-height: 1.5; }
+    .tip-text strong { color: var(--text); }
+
+    /* CTA */
+    .cta { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); padding: 28px 20px; text-align: center; color: #fff; margin-bottom: 14px; }
+    .cta h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .cta p { font-size: 13px; opacity: 0.85; margin-bottom: 20px; line-height: 1.6; }
+    .cta-btn { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: var(--primary); font-weight: 800; font-size: 14px; padding: 13px 28px; border-radius: 14px; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+
+    /* FOOTER */
+    .footer { text-align: center; padding: 20px; font-size: 12px; color: var(--muted); }
+    .footer a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a class="logo" href="/">
+      <div class="logo-icon">🐾</div>
+      <span class="logo-text">Huella<span>Viva</span></span>
+    </a>
+    <a class="nav-btn" href="/">Reportar perro</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">🌍 Santa Marta, Colombia</div>
+    <h1>Perros Perdidos en Santa Marta — Encuentra a tu Mejor Amigo</h1>
+    <p>HuellaViva es la plataforma gratuita de la comunidad samaria para reportar y encontrar mascotas perdidas o halladas en Santa Marta.</p>
+    <a class="hero-btn" href="/">🐶 Ver perros perdidos ahora</a>
+  </div>
+
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-pill">
+        <div class="stat-num">🆓</div>
+        <div class="stat-lbl">100% Gratis</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-num">📍</div>
+        <div class="stat-lbl">Mapa en vivo</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-num">⚡</div>
+        <div class="stat-lbl">Al instante</div>
+      </div>
+    </div>
+
+    <!-- QUÉ ES -->
+    <div class="section">
+      <div class="section-icon">🐾</div>
+      <h2>¿Qué es HuellaViva?</h2>
+      <p>HuellaViva es una aplicación web gratuita creada para la comunidad de Santa Marta, Colombia. Permite a cualquier persona reportar un perro perdido o hallado en segundos, y conectar con toda la comunidad samaria para encontrarlo más rápido.</p>
+      <p>A diferencia de los grupos de Facebook o WhatsApp, HuellaViva tiene un mapa interactivo que muestra exactamente dónde fue visto el perro, facilitando la búsqueda en el barrio correcto.</p>
+    </div>
+
+    <!-- CÓMO REPORTAR -->
+    <div class="section">
+      <div class="section-icon">📋</div>
+      <h2>¿Cómo reportar un perro perdido en Santa Marta?</h2>
+      <p>Con HuellaViva es muy sencillo. Sigue estos pasos:</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Entra a HuellaViva</div>
+            <div class="step-desc">Visita huellavivaapp.com desde tu celular o computador, sin necesidad de instalar nada.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Toca el botón "Reportar"</div>
+            <div class="step-desc">Está en la barra inferior de la pantalla. Llena los datos básicos: nombre del perro, raza, tamaño y color.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Sube una foto</div>
+            <div class="step-desc">Una foto clara ayuda muchísimo. La comunidad podrá reconocer al perro si lo ve en la calle.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Marca la ubicación</div>
+            <div class="step-desc">Indica el barrio o lugar exacto donde fue visto por última vez. Aparecerá en el mapa para toda la comunidad.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">¡Listo! La comunidad te ayuda</div>
+            <div class="step-desc">Tu reporte queda visible para todos en Santa Marta. Si alguien lo ve, puede contactarte directamente por WhatsApp.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSEJOS -->
+    <div class="section">
+      <div class="section-icon">💡</div>
+      <h2>Consejos para encontrar tu perro perdido en Santa Marta</h2>
+      <div class="tips">
+        <div class="tip">
+          <div class="tip-icon">🏃</div>
+          <div class="tip-text"><strong>Actúa rápido:</strong> Las primeras horas son clave. Reporta en HuellaViva inmediatamente y comparte el reporte en grupos de WhatsApp del barrio.</div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">📸</div>
+          <div class="tip-text"><strong>Usa una buena foto:</strong> Sube la foto más clara y reciente de tu perro. Muestra su cara y características especiales como manchas o cicatrices.</div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🗺️</div>
+          <div class="tip-text"><strong>Marca la zona exacta:</strong> Indica el barrio donde se perdió. En Santa Marta los perros suelen quedarse cerca de donde se escaparon.</div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">📢</div>
+          <div class="tip-text"><strong>Comparte en redes:</strong> Difunde el reporte en grupos de Facebook y WhatsApp de tu barrio en Santa Marta. Mientras más personas lo vean, mejor.</div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🏥</div>
+          <div class="tip-text"><strong>Visita veterinarias:</strong> Pregunta en las veterinarias cercanas de Santa Marta, a veces llevan a los perros encontrados allí.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="section">
+      <div class="section-icon">❓</div>
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq-item">
+        <div class="faq-q">¿HuellaViva es gratuito?</div>
+        <div class="faq-a">Sí, completamente gratuito. No necesitas registrarte ni pagar nada para reportar o buscar perros perdidos en Santa Marta.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Solo funciona para perros?</div>
+        <div class="faq-a">Actualmente HuellaViva está enfocado en perros perdidos en Santa Marta, Colombia. Próximamente se agregarán más tipos de mascotas.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Necesito instalar una app?</div>
+        <div class="faq-a">No. HuellaViva funciona directamente desde el navegador de tu celular. Solo entra a huellavivaapp.com y listo. También puedes agregarla a tu pantalla de inicio para acceder más fácil.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Cómo me contactan si encuentran a mi perro?</div>
+        <div class="faq-a">Directamente por WhatsApp. Cuando alguien encuentre a tu perro, puede contactarte al número que dejaste en el reporte con un solo toque.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Qué hago si encuentro un perro perdido en Santa Marta?</div>
+        <div class="faq-a">Entra a HuellaViva y repórtalo como "Hallado". Indica el barrio donde lo encontraste y sube una foto. El dueño podrá verte en el mapa y contactarte.</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta">
+      <h2>¿Perdiste o encontraste un perro en Santa Marta?</h2>
+      <p>Reporta ahora en HuellaViva y llega a toda la comunidad samaria al instante. Es gratis y tarda menos de 1 minuto.</p>
+      <a class="cta-btn" href="/">🐾 Ir a HuellaViva</a>
+    </div>
+
+    <!-- ACERCA DE -->
+    <div class="section">
+      <div class="section-icon">🌟</div>
+      <h2>Acerca de HuellaViva</h2>
+      <p>HuellaViva nació en Santa Marta, Colombia, con el propósito de ayudar a reunir a las mascotas con sus familias. Es un proyecto comunitario creado con amor por y para los samarios.</p>
+      <p>Si tienes sugerencias o quieres colaborar con el proyecto, puedes contactarnos directamente desde la aplicación.</p>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>© 2026 HuellaViva — Santa Marta, Colombia</p>
+    <p style="margin-top:6px"><a href="/">Volver a la app</a> · Hecho con ❤️ para los samarios</p>
+  </div>
+
+</body>
+</html>

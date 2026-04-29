@@ -1,0 +1,10 @@
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Path = ["/*.html"]}
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#7C3AED"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/png" href="/icon-192.png"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({ appId: "9a21a76b-dcd3-471e-9e57-fa0804ace887" });
+    });
+  </script>
+  <title>HuellaViva — Perros Perdidos en Santa Marta, Colombia</title>
+  <meta name="description" content="Reporta perros perdidos o hallados en Santa Marta, Colombia. HuellaViva conecta a la comunidad para encontrar mascotas perdidas al instante. ¡Ayúdanos a reunir familias con sus perros!">
+  <meta name="keywords" content="perros perdidos Santa Marta, mascotas perdidas Santa Marta, perros hallados Santa Marta, adopción perros Santa Marta, reportar perro perdido, HuellaViva">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://huellavivaapp.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HuellaViva — Perros Perdidos en Santa Marta">
+  <meta property="og:description" content="¿Perdiste tu perro en Santa Marta? Repórtalo gratis y llega a toda la comunidad al instante. Ve en el mapa dónde fue visto.">
+  <meta property="og:url" content="https://huellavivaapp.com/">
+  <meta property="og:image" content="https://huellavivaapp.com/perro.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Perros Perdidos Santa Marta — HuellaViva">
+  <meta name="twitter:image" content="https://huellavivaapp.com/perro.jpg">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="HuellaViva — Perros Perdidos en Santa Marta">
+  <meta name="twitter:description" content="¿Perdiste tu perro en Santa Marta? Repórtalo gratis y llega a toda la comunidad al instante.">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root {
+      --bg: #F8F7FF; --surface: #FFFFFF; --surface2: #F3F2FF;
+      --primary: #7C3AED; --primary-light: #EDE9FE; --primary-dark: #5B21B6;
+      --green: #10B981; --red: #EF4444; --accent: #F59E0B;
+      --text: #1E1B4B; --muted: #6B7280; --border: #E5E7EB;
+      --shadow: 0 2px 8px rgba(0,0,0,0.10); --shadow-md: 0 6px 16px rgba(0,0,0,0.12);
+      --radius: 16px; --font: 'Plus Jakarta Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+    .nav { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon { width: 34px; height: 34px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; animation: heartbeat 5s ease-in-out infinite; }
+    @keyframes heartbeat { 0%,90%,100% { transform: scale(1); } 92% { transform: scale(1.18); } 96% { transform: scale(1.05); } 98% { transform: scale(1.15); } }
+    .logo-text { font-weight: 800; font-size: 18px; color: var(--text); letter-spacing: -0.5px; }
+    .logo-text span { color: var(--primary); }
+    .nav-badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; transition: transform 0.3s ease; }
+    .nav-badge.bump { animation: badge-bump 0.4s cubic-bezier(0.36,0.07,0.19,0.97); }
+    @keyframes badge-bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } 70% { transform: scale(0.9); } }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding: 8px 0 16px; z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.06); }
+    .bnav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px; transition: all 0.2s; }
+    .bnav-icon { font-size: 22px; transition: transform 0.2s; }
+    .bnav-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.3px; }
+    .bnav-item.active .bnav-label { color: var(--primary); }
+    .bnav-item.active { position: relative; }
+    .bnav-item.active::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; background: var(--primary); border-radius: 0 0 4px 4px; animation: fadeInUp 0.3s ease both; }
+    .bnav-item.active .bnav-icon { transform: scale(1.15); }
+    .bnav-report { background: var(--primary); border-radius: 18px; width: 56px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-top: -8px; box-shadow: 0 4px 14px rgba(124,58,237,0.4); animation: pulse-btn 2s infinite; }
+    @keyframes pulse-btn { 0%,100% { box-shadow: 0 4px 14px rgba(124,58,237,0.4); transform: scale(1); } 50% { box-shadow: 0 4px 20px rgba(124,58,237,0.7); transform: scale(1.08); } }
+    .screen { display: none; padding: 16px; padding-bottom: 90px; }
+    .screen.active { animation: fadeInUp 0.3s ease both; }
+    .screen.active { display: block; }
+    #map { width: 100%; height: 240px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .map-legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 500; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .section-title { font-weight: 700; font-size: 16px; color: var(--text); margin: 18px 0 4px; letter-spacing: -0.3px; }
+    .screen-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; color: #fff; }
+    .screen-header-title { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+    .screen-header-sub { font-size: 12px; opacity: 0.8; font-weight: 500; }
+    .section-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; font-weight: 500; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+    .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-align: center; box-shadow: var(--shadow); transition: transform 0.2s; }
+    .stat-pill:active { transform: scale(0.96); }
+    .stat-num { font-size: 22px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .stat-lbl { font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cards { display: flex; flex-direction: column; gap: 0; }
+    .dog-card { margin-bottom: 10px; }
+    .dog-card + .dog-card { border-top: none; }
+    .dog-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; gap: 14px; box-shadow: var(--shadow); transition: all 0.2s; position: relative; overflow: hidden; }
+    .dog-card.urgent::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(239,68,68,0.05) 0%, transparent 60%); pointer-events: none; }
+    .dog-card:not(.urgent)::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, transparent 60%); pointer-events: none; }
+    .dog-card:active { transform: scale(0.97); box-shadow: 0 1px 4px rgba(0,0,0,0.08); filter: brightness(0.97); }
+    .dog-card.urgent { border-left: 3px solid var(--red); border-radius: 0 var(--radius) var(--radius) 0; animation: pulse-border 2s infinite; }
+    .dog-card.adopcion-card { border-left: 3px solid #F59E0B; border-radius: 0 var(--radius) var(--radius) 0; animation: pulse-adopcion 3s infinite; }
+    @keyframes pulse-adopcion { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4), var(--shadow); } 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0), var(--shadow); } }
+    .dog-avatar { width: 80px; height: 80px; border-radius: 14px; flex-shrink: 0; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 34px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .dog-avatar img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; cursor: pointer; }
+    .dog-avatar img:active { transform: scale(1.08); }
+    .dog-info { flex: 1; min-width: 0; }
+    .dog-name { font-weight: 700; font-size: 15px; color: var(--text); }
+    .dog-meta { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+    .dog-tags { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+    .tag { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 700; letter-spacing: 0.3px; animation: tag-bounce 0.4s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+    @keyframes tag-bounce { 0% { transform: scale(0); opacity:0; } 60% { transform: scale(1.15); opacity:1; } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
+    .tag-lost { background: #DC2626; color: #fff; }
+    .tag-found { background: #059669; color: #fff; }
+    .tag-reward { background: #D97706; color: #fff; }
+    .tag-avist { background: #4338CA; color: #fff; }
+    .tag-adopcion { background: #F59E0B; color: #fff; }
+    .dog-loc { font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+    .wa-btn { display: inline-flex; align-items: center; gap: 5px; background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; border-radius: 20px; padding: 6px 14px; font-size: 11px; font-weight: 700; cursor: pointer; margin-top: 8px; margin-right: 6px; text-decoration: none; transition: all 0.2s; }
+    .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; }
+    .loading { text-align: center; padding: 32px; color: var(--muted); font-size: 13px; }
+    .skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; gap: 14px; box-shadow: var(--shadow); margin-bottom: 10px; }
+    .skeleton-avatar { width: 80px; height: 80px; border-radius: 14px; background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; flex-shrink: 0; }
+    .skeleton-info { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+    .skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .skeleton-line.wide { width: 70%; }
+    .skeleton-line.medium { width: 50%; }
+    .skeleton-line.narrow { width: 35%; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes ripple { 0% { transform: scale(0); opacity: 0.6; } 100% { transform: scale(3); opacity: 0; } }
+    @keyframes radar { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+    .ripple-container { position: relative; overflow: hidden; }
+    .ripple-effect { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.4); animation: ripple 0.6s ease-out forwards; pointer-events: none; }
+    @keyframes sway { 0%,100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
+    @keyframes bounce-rain { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes flicker { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(1.2); } }
+    @keyframes fade-mist { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .clima-sun { animation: spin-slow 8s linear infinite; display:inline-block; }
+    .clima-cloud { animation: sway 3s ease-in-out infinite; display:inline-block; }
+    .clima-rain { animation: bounce-rain 1s ease-in-out infinite; display:inline-block; }
+    .clima-storm { animation: flicker 0.8s ease-in-out infinite; display:inline-block; }
+    .clima-mist { animation: fade-mist 2s ease-in-out infinite; display:inline-block; }
+    body.dark .skeleton-avatar, body.dark .skeleton-line { background: linear-gradient(90deg, #2D2D44 25%, #3D3D5C 50%, #2D2D44 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .form-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; color: #fff; }
+    .form-header-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .form-header-sub { font-size: 12px; opacity: 0.8; }
+    .form-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .form-section-title { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 6px; }
+    .field input, .field select, .field textarea { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-size: 14px; font-family: var(--font); outline: none; transition: all 0.2s; font-weight: 500; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+    .field textarea { resize: none; height: 80px; }
+    .row { display: flex; gap: 10px; }
+    .row .field { flex: 1; }
+    .photo-area { background: var(--bg); border: 2px dashed var(--border); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .photo-area:hover { border-color: var(--primary); background: var(--primary-light); }
+    .photo-area-icon { font-size: 36px; margin-bottom: 8px; }
+    .photo-area-text { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .ai-status { font-size: 12px; margin-top: 8px; padding: 8px 12px; background: var(--primary-light); border-radius: 8px; text-align: center; font-weight: 600; display: none; color: var(--primary); }
+    .location-btn { display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary-light); color: var(--primary); border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; width: 100%; font-family: var(--font); transition: all 0.2s; }
+    .location-btn:hover { background: var(--primary); color: #fff; }
+    .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 12px; padding: 15px; font-size: 15px; font-weight: 700; font-family: var(--font); cursor: pointer; box-shadow: 0 4px 14px rgba(124,58,237,0.35); transition: all 0.2s; }
+    .btn-primary:active { transform: scale(0.97); filter: brightness(0.95); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .toast { position: fixed; bottom: 90px; left: 16px; right: 16px; transform: none; background: var(--text); color: #fff; padding: 13px 18px; border-radius: 14px; font-size: 13px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: normal; text-align:center; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+    .toast.show { opacity: 1; }
+    .toast.error { background: var(--red); }
+    .toast.success { background: var(--green); }
+  </style>
+
+  <meta property="og:url" content="https://huellavivaapp.com" />
+  <meta property="og:type" content="website" />
+</head>
+<body>
+
+<div id="splash" style="position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#7C3AED,#5B21B6);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity 0.5s ease;">
+  <div style="font-size:64px;animation:bounce 1s infinite alternate;">🐾</div>
+  <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;">Huella<span style="color:#C4B5FD;">Viva</span></div>
+  <div style="font-size:13px;color:rgba(255,255,255,0.7);font-weight:500;">Encuentra a tu mejor amigo</div>
+  <div style="margin-top:8px;display:flex;gap:6px;">
+    <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0s;"></div>
+    <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0.2s;"></div>
+    <div style="width:8px;height:8px;background:#C4B5FD;border-radius:50%;animation:dot 1s infinite 0.4s;"></div>
+  </div>
+</div>
+
+<style>
+@keyframes bounce {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-12px); }
+}
+@keyframes dot {
+  0%,80%,100% { opacity:0.3; transform:scale(0.8); }
+  40% { opacity:1; transform:scale(1.2); }
+}
+body.dark {
+  --bg: #0F0F1A; --surface: #1A1A2E; --surface2: #16213E;
+  --text: #E2E8F0; --muted: #94A3B8; --border: #2D2D44;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4); --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4), var(--shadow); }
+  50% { box-shadow: 0 0 0 6px rgba(239,68,68,0), var(--shadow); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes caer {
+  0% { transform: translateY(0) rotate(0deg); opacity:1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
+}
+</style>
+
+<div id="onboarding" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:99998;background:#fff;display:none;flex-direction:column;">
+  <div id="ob-slides" style="flex:1;position:relative;overflow:hidden;">
+
+    <div class="ob-slide" id="ob-0" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;background:linear-gradient(135deg,#7C3AED,#5B21B6);transform:translateX(0);transition:transform 0.4s ease;">
+      <div style="font-size:90px;margin-bottom:24px;animation:bounce 1s infinite alternate;">🐾</div>
+      <div style="font-size:24px;font-weight:800;color:#fff;text-align:center;margin-bottom:12px;line-height:1.3;">¿Perdiste tu perro o viste uno perdido?</div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.85);text-align:center;line-height:1.6;">Repórtalo en segundos y llega a toda la comunidad de Santa Marta</div>
+    </div>
+
+    <div class="ob-slide" id="ob-1" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;background:linear-gradient(135deg,#5B21B6,#4C1D95);transform:translateX(100%);transition:transform 0.4s ease;">
+      <div style="font-size:90px;margin-bottom:24px;animation:bounce 1s infinite alternate;">🗺️</div>
+      <div style="font-size:24px;font-weight:800;color:#fff;text-align:center;margin-bottom:12px;line-height:1.3;">Ve en el mapa dónde fue visto</div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.85);text-align:center;line-height:1.6;">Cada reporte aparece en el mapa con su ubicación exacta para que puedas ir a buscarlo</div>
+    </div>
+
+    <div class="ob-slide" id="ob-2" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 30px;background:linear-gradient(135deg,#4C1D95,#3B0764);transform:translateX(100%);transition:transform 0.4s ease;">
+      <div style="font-size:90px;margin-bottom:24px;animation:bounce 1s infinite alternate;">📲</div>
+      <div style="font-size:24px;font-weight:800;color:#fff;text-align:center;margin-bottom:12px;line-height:1.3;">Comparte con tus vecinos</div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.85);text-align:center;line-height:1.6;">Entre más personas lo vean, más rápido vuelve a casa ❤️</div>
+    </div>
+
+  </div>
+
+  <div style="padding:30px;background:transparent;position:absolute;bottom:0;left:0;right:0;">
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:24px;" id="ob-dots">
+      <div id="od-0" style="width:10px;height:10px;border-radius:50%;background:#fff;transition:all 0.3s;"></div>
+      <div id="od-1" style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.4);transition:all 0.3s;"></div>
+      <div id="od-2" style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.4);transition:all 0.3s;"></div>
+    </div>
+    <button id="ob-btn" onclick="obSiguiente()" style="width:100%;background:#fff;color:#7C3AED;border:none;border-radius:16px;padding:18px;font-size:17px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(0,0,0,0.2);">Siguiente →</button>
+    <button onclick="obSaltar()" style="width:100%;background:transparent;color:rgba(255,255,255,0.7);border:none;padding:14px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);margin-top:8px;">Saltar</button>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="logo">
+    <div class="logo-icon">🐾</div>
+    <div class="logo-text">Huella<span>Viva</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;"><button onclick="toggleDark()" id="dark-btn" style="background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px;">🌙</button><a href="https://www.facebook.com/profile.php?id=61576506208917" target="_blank" style="display:flex;align-items:center;gap:4px;background:#1877F2;color:#fff;font-size:9px;font-weight:700;padding:5px 9px;border-radius:20px;text-decoration:none;line-height:1.3;text-align:center;">📘 Perros Perdidos<br>Santa Marta</a><div style="display:flex;align-items:center;gap:6px;"><button onclick="activarNotis()" id="noti-btn" style="background:#10B981;color:#fff;border:none;font-size:10px;font-weight:700;padding:5px 9px;border-radius:20px;cursor:pointer;">🔔 Notis</button><div class="nav-badge" id="contador">...</div></div></div>
+</div>
+
+<div class="screen active" id="screen-inicio">
+  <div style="border-radius:var(--radius);overflow:hidden;margin-bottom:16px;position:relative;">
+    <img src="/perro.jpg" style="width:100%;height:200px;object-fit:cover;display:block;filter:brightness(0.92);"/>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));padding:20px 16px 14px;">
+      <div style="color:#fff;font-weight:800;font-size:20px;line-height:1.2;animation:fadeInUp 0.6s ease both;">¿Perdiste o encontraste un perro en Santa Marta?</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;animation:fadeInUp 0.6s ease 0.2s both;">
+    <button onclick="showTab('reportar')" style="background:var(--red);color:#fff;border:none;border-radius:var(--radius);padding:18px 8px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(239,68,68,0.45);transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">🚨<br>Reportar<br><span style="font-size:10px;opacity:0.9;">perdido</span></button>
+    <button onclick="showTab('mapa')" style="background:var(--primary);color:#fff;border:none;border-radius:var(--radius);padding:18px 8px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(124,58,237,0.45);transition:transform 0.2s;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">🗺️<br>Ver mapa<br><span style="font-size:10px;opacity:0.9;">y casos</span></button>
+    <button onclick="showTab('adopcion')" style="background:#F59E0B;color:#fff;border:none;border-radius:var(--radius);padding:18px 8px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(245,158,11,0.45);transition:transform 0.2s;animation:heartbeat 4s ease-in-out infinite;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">🏠<br>Adopción<br><span style="font-size:10px;opacity:0.9;">dar hogar</span></button>
+  </div>
+
+  <div class="stats-row" style="margin-bottom:16px;">
+    <div class="stat-pill"><div class="stat-num" id="si-perdidos">-</div><div class="stat-lbl">Perdidos</div></div>
+    <div class="stat-pill"><div class="stat-num" id="si-encontrados">-</div><div class="stat-lbl">Hallados</div></div>
+    <div class="stat-pill"><div class="stat-num" id="si-total">-</div><div class="stat-lbl">Total</div></div>
+  </div>
+
+  <div id="clima-widget" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;box-shadow:var(--shadow);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="clima-icono" style="font-size:24px;">🌤️</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text);" id="clima-temp">--°C</div>
+        <div style="font-size:11px;color:var(--muted);" id="clima-desc">Santa Marta</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:right;">
+      <div id="clima-humedad"></div>
+      <div style="color:var(--primary);font-weight:600;">🌡️ Clima actual</div>
+    </div>
+  </div>
+  <div id="ultimo-reporte" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px;font-weight:500;"></div>
+  <div class="section-title">Casos recientes</div>
+  <div class="cards" id="cards-inicio"><div id="sk-mapa"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div></div>
+</div>
+
+<div class="screen" id="screen-mapa">
+  <div id="map"></div>
+  <div class="map-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div>Perdido</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div>Encontrado</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Tú</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-pill"><div class="stat-num" id="s-perdidos">-</div><div class="stat-lbl">Perdidos</div></div>
+    <div class="stat-pill"><div class="stat-num" id="s-encontrados">-</div><div class="stat-lbl">Hallados</div></div>
+    <div class="stat-pill"><div class="stat-num" id="s-total">-</div><div class="stat-lbl">Total</div></div>
+  </div>
+  <div class="section-title">Casos recientes</div>
+  <div class="cards" id="cards-mapa"><div id="sk-mapa"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div></div>
+</div>
+
+<div class="screen" id="screen-perdidos">
+  <div class="screen-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="screen-header-title">🐾 Perros perdidos</div>
+        <div class="screen-header-sub">Activos en tu zona</div>
+      </div>
+      <button onclick="toggleBuscador('perdidos')" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;">🔍</button>
+    </div>
+  </div>
+  <div id="buscador-perdidos" style="display:none;margin-bottom:10px;">
+    <input id="input-buscador-perdidos" type="text" placeholder="Buscar por nombre, raza, barrio..." oninput="filtrarReportes('perdidos')" style="width:100%;background:var(--surface);border:1.5px solid var(--primary);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;font-weight:500;"/>
+  </div>
+  <div class="cards" id="cards-perdidos"><div id="sk-perdidos"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div></div>
+</div>
+
+<div class="screen" id="screen-reportar">
+  <div class="form-header">
+    <div class="form-header-title">Reportar un perro</div>
+    <div class="form-header-sub">Tu reporte llega instantáneamente a todos los vecinos</div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Tipo de reporte</div>
+    <div class="field">
+      <select id="f-tipo">
+        <option value="perdido">🚨 Mi perro se perdió</option>
+        <option value="encontrado">🐾 Encontré un perro</option>
+        <option value="avistamiento">👁️ Vi un perro perdido</option>
+        <option value="adopcion">🏠 Tengo un perro en adopción</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Foto del perro</div>
+    <div class="photo-area" id="foto-area" onclick="document.getElementById('f-foto').click()">
+      <div class="photo-area-icon">📷</div>
+      <div class="photo-area-text">Toca para agregar una foto</div>
+    </div>
+    <input type="file" id="f-foto" accept="image/*" style="display:none" onchange="previewFoto(this)"/>
+    <div class="ai-status" id="ai-status"></div>
+    <div id="foto-preview" style="margin-top:10px;display:none;">
+      <img id="foto-img" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover;"/>
+    </div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Información del perro</div>
+    <div class="row">
+      <div class="field"><label>Nombre</label><input id="f-nombre" type="text" placeholder="Ej: Max"/></div>
+      <div class="field"><label>Raza</label><input id="f-raza" type="text" placeholder="Ej: Golden"/></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Color</label><input id="f-color" type="text" placeholder="Ej: Dorado"/></div>
+      <div class="field"><label>Tamaño</label><select id="f-tamano"><option>Pequeño</option><option>Mediano</option><option>Grande</option></select></div>
+    </div>
+    <div class="field"><label>Descripción</label><textarea id="f-desc" placeholder="Collar, señas particulares..."></textarea></div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-title">Ubicación y contacto</div>
+    <div class="field">
+      <label>Última ubicación conocida</label>
+      <input id="f-ubicacion" type="text" placeholder="Escribe un barrio o dirección..." autocomplete="off" oninput="buscarUbicacion(this.value)"/>
+      <div id="ubicacion-sugerencias" style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;margin-top:4px;display:none;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+      <button class="location-btn" onclick="getLocation()">📍 Usar mi ubicación GPS</button>
+    </div>
+    <div class="field"><label>Recompensa (opcional)</label><input id="f-recompensa" type="text" placeholder="Ej: $200.000 COP"/></div>
+    <div class="field"><label>Tu teléfono</label><input id="f-telefono" type="tel" placeholder="300 123 4567"/></div>
+  </div>
+  <button class="btn-primary" id="btn-reportar" onclick="publicarReporte()">Publicar reporte 🐾</button>
+</div>
+
+<div class="screen" id="screen-encontrados">
+  <div class="screen-header" style="background:linear-gradient(135deg,#059669,#047857);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="screen-header-title">✅ Perros encontrados</div>
+        <div class="screen-header-sub">Casos resueltos recientemente</div>
+      </div>
+      <button onclick="toggleBuscador('encontrados')" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;">🔍</button>
+    </div>
+  </div>
+  <div id="buscador-encontrados" style="display:none;margin-bottom:10px;">
+    <input id="input-buscador-encontrados" type="text" placeholder="Buscar por nombre, raza, barrio..." oninput="filtrarReportes('encontrados')" style="width:100%;background:var(--surface);border:1.5px solid var(--primary);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;font-weight:500;"/>
+  </div>
+  <div class="cards" id="cards-encontrados"><div id="sk-encontrados"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div></div>
+</div>
+
+<div class="screen" id="screen-adopcion">
+  <div class="screen-header" style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="screen-header-title">🏠 Adopción</div>
+        <div class="screen-header-sub">Encuentra tu compañero ideal</div>
+      </div>
+      <button onclick="toggleBuscador('adopcion')" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;">🔍</button>
+    </div>
+  </div>
+  <div id="buscador-adopcion" style="display:none;margin-bottom:10px;">
+    <input id="input-buscador-adopcion" type="text" placeholder="Buscar por nombre, raza, barrio..." oninput="filtrarReportes('adopcion')" style="width:100%;background:var(--surface);border:1.5px solid var(--primary);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;font-weight:500;"/>
+  </div>
+  <div class="cards" id="cards-adopcion"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="bottom-nav">
+  <div class="bnav-item active" onclick="showTab('inicio')" id="bnav-inicio">
+    <div class="bnav-icon">🏠</div>
+    <div class="bnav-label">Inicio</div>
+  </div>
+  <div class="bnav-item" onclick="showTab('mapa')" id="bnav-mapa">
+    <div class="bnav-icon">🗺️</div>
+    <div class="bnav-label">Mapa</div>
+  </div>
+  <div class="bnav-item" onclick="showTab('perdidos')" id="bnav-perdidos">
+    <div class="bnav-icon">🐾</div>
+    <div class="bnav-label">Perdidos</div>
+  </div>
+  <div class="bnav-item" onclick="showTab('reportar')" id="bnav-reportar">
+    <div class="bnav-report ripple-container" id="btn-report-nav" onclick="crearRipple(event)">📢</div>
+    <div class="bnav-label" style="color:var(--primary);font-weight:700;">Reportar</div>
+  </div>
+  <div class="bnav-item" onclick="showTab('encontrados')" id="bnav-encontrados">
+    <div class="bnav-icon">✅</div>
+    <div class="bnav-label">Hallados</div>
+  </div>
+  <div class="bnav-item" onclick="showTab('adopcion')" id="bnav-adopcion">
+    <div class="bnav-icon" style="animation:heartbeat 4s ease-in-out infinite;">🏠</div>
+    <div class="bnav-label">Adopción</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const SUPABASE_URL = 'https://cfqwfabqbgiddgsozxqa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cj1bpa69PyP0mqbvSocYsA_qM3AK6iL';
+const CLOUDINARY_CLOUD = 'dxjxiz7sp';
+const CLOUDINARY_PRESET = 'huellaviva';
+
+let mapInstance = null;
+let userLat = 11.2408, userLng = -74.2121, ubicacionReal = false;
+
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('foto-img').src = e.target.result;
+    document.getElementById('foto-preview').style.display = 'block';
+    document.getElementById('foto-area').style.borderColor = '#7C3AED';
+    document.getElementById('foto-area').style.background = '#EDE9FE';
+    analizarFotoIA(input.files[0], e.target.result);
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function analizarFotoIA(file, base64full) {
+  const aiStatus = document.getElementById('ai-status');
+  if (aiStatus) { aiStatus.style.display = 'block'; aiStatus.textContent = '🤖 IA analizando la foto...'; }
+  try {
+    const base64 = base64full.split(',')[1];
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType: file.type || 'image/jpeg' })
+    });
+    const data = await res.json();
+    if (data.raza) document.getElementById('f-raza').value = data.raza;
+    if (data.color) document.getElementById('f-color').value = data.color;
+    if (data.descripcion) document.getElementById('f-desc').value = data.descripcion;
+    if (aiStatus) { aiStatus.textContent = '✅ Datos completados por IA'; }
+  } catch(e) {
+    if (aiStatus) { aiStatus.textContent = '⚠️ Completa los datos manualmente'; }
+  }
+}
+
+async function subirFoto(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', { method: 'POST', body: fd });
+  const data = await res.json();
+  return data.secure_url;
+}
+
+async function supabase(method, path, body) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    method,
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': method === 'POST' ? 'return=representation' : '' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function showTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('bnav-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (name === 'inicio') cargarInicio();
+  if (name === 'mapa') { cargarMapa(); cargarCards('mapa'); setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 200); }
+  if (name === 'perdidos') cargarCards('perdidos');
+  if (name === 'encontrados') cargarCards('encontrados');
+  if (name === 'adopcion') cargarCards('adopcion');
+}
+
+function avatarPerro(r) {
+  if (r.nombre && r.nombre.trim()) {
+    const inicial = r.nombre.trim()[0].toUpperCase();
+    const color = r.tipo === 'perdido' ? '#EF4444' : '#10B981';
+    return `<div style="width:100%;height:100%;background:${color};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;font-family:var(--font);">${inicial}</div>`;
+  }
+  return '🐕';
+}
+
+function mostrarModalExito(tipo) {
+  const colores = ['#7C3AED','#10B981','#F59E0B','#EF4444','#3B82F6','#EC4899'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.style.cssText = `position:fixed;top:-10px;left:${Math.random()*100}vw;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colores[Math.floor(Math.random()*colores.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};z-index:99998;animation:caer ${1.5+Math.random()*2}s ease-in forwards;animation-delay:${Math.random()*0.8}s;`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;';
+  const esAdopcion = tipo === 'adopcion';
+  const emoji = esAdopcion ? '🏠' : '🐾';
+  const titulo = esAdopcion ? '¡Perro en adopción publicado!' : '¡Reporte publicado!';
+  const mensaje = esAdopcion
+    ? 'Tu perro ya está visible para toda la comunidad 🌍<br><br>Compártelo para encontrarle un hogar ❤️'
+    : 'Tu reporte ya está visible para toda la comunidad 🌍<br><br>Entre más personas lo vean,<br>más rápido vuelve a casa ❤️';
+  card.innerHTML = [
+    '<div style="font-size:56px;margin-bottom:12px;">' + emoji + '</div>',
+    '<div style="font-size:20px;font-weight:800;color:#1E1B4B;margin-bottom:8px;">' + titulo + '</div>',
+    '<div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px;">' + mensaje + '</div>',
+    '<a href="https://www.facebook.com/profile.php?id=61576506208917" target="_blank" style="display:block;background:#1877F2;color:#fff;padding:13px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;margin-bottom:10px;">📘 Compartir en Facebook</a>'
+  ].join('');
+  const btn = document.createElement('button');
+  btn.textContent = 'Cerrar';
+  btn.style.cssText = 'width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;';
+  btn.onclick = () => document.body.removeChild(m);
+  card.appendChild(btn);
+  m.appendChild(card);
+  document.body.appendChild(m);
+}
+
+async function cargarClima() {
+  try {
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=11.2408&longitude=-74.2121&current=temperature_2m,relative_humidity_2m,weather_code&timezone=America/Bogota');
+    const data = await res.json();
+    const temp = Math.round(data.current.temperature_2m);
+    const humedad = data.current.relative_humidity_2m;
+    const codigo = data.current.weather_code;
+    const hora = new Date().getHours();
+    const esNoche = hora >= 19 || hora < 6;
+    const esTarde = hora >= 17 && hora < 19;
+    const iconosDia = { 0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌦️', 61:'🌧️', 71:'❄️', 80:'🌦️', 95:'⛈️' };
+    const iconosNoche = { 0:'🌙', 1:'🌙', 2:'🌙', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌧️', 61:'🌧️', 71:'❄️', 80:'🌧️', 95:'⛈️' };
+    const iconosTarde = { 0:'🌅', 1:'🌅', 2:'🌥️', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌦️', 61:'🌧️', 71:'❄️', 80:'🌦️', 95:'⛈️' };
+    const tablaIconos = esNoche ? iconosNoche : esTarde ? iconosTarde : iconosDia;
+    const icono = tablaIconos[codigo] || (codigo <= 3 ? (esNoche ? '🌙' : '🌤️') : codigo <= 67 ? '🌧️' : '⛈️');
+    const claseIcono = esNoche ? (codigo <= 3 ? 'clima-cloud' : codigo <= 67 ? 'clima-rain' : codigo === 95 ? 'clima-storm' : 'clima-mist') : codigo === 0 ? 'clima-sun' : codigo <= 3 ? 'clima-cloud' : codigo <= 67 ? 'clima-rain' : codigo === 95 ? 'clima-storm' : codigo >= 45 ? 'clima-mist' : 'clima-cloud';
+    const widget = document.getElementById('clima-widget');
+    if (widget) {
+      document.getElementById('clima-temp').textContent = temp + '°C';
+      const iconoEl = document.getElementById('clima-icono'); iconoEl.textContent = icono; iconoEl.className = claseIcono;
+      document.getElementById('clima-humedad').textContent = '💧 ' + humedad + '% humedad';
+      document.getElementById('clima-desc').textContent = temp > 30 ? '🥵 Mucho calor — hidrata a tu perro' : 'Santa Marta';
+      widget.style.display = 'flex';
+      widget.style.opacity = '0';
+      widget.style.transform = 'translateY(20px)';
+      void widget.offsetWidth;
+      widget.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
+      widget.style.opacity = '1';
+      widget.style.transform = 'translateY(0)';
+    }
+  } catch(e) {}
+}
+
+function animarContador(elementId, valorFinal) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  let inicio = 0;
+  const duracion = 1000;
+  const paso = Math.ceil(valorFinal / (duracion / 16));
+  const timer = setInterval(() => {
+    inicio += paso;
+    if (inicio >= valorFinal) {
+      el.textContent = valorFinal;
+      clearInterval(timer);
+    } else {
+      el.textContent = inicio;
+    }
+  }, 16);
+}
+
+async function cargarInicio() {
+  cargarClima();
+  try {
+    const data = await supabase('GET', 'reportes?activo=eq.true&order=created_at.desc&limit=5');
+    const el = document.getElementById('cards-inicio');
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🐾</div><div class="empty-title">Sin reportes aún</div><div class="empty-sub">Sé el primero en reportar</div></div>';
+    } else {
+      window._rep = window._rep || {}; data.forEach(x => { window._rep[x.id] = x; });
+      const ultimoEl = document.getElementById('ultimo-reporte');
+      if (ultimoEl && data[0] && data[0].created_at) {
+        ultimoEl.textContent = '🕐 Último reporte ' + tiempoRelativo(data[0].created_at);
+      }
+      el.innerHTML = data.map(renderCard).join('');
+      el.querySelectorAll('.dog-card').forEach((c,i) => { if(data[i]){ c.addEventListener('click', () => verDetalle(data[i].id)); c.style.opacity='0'; c.style.animation=`fadeInUp 0.4s ease forwards`; c.style.animationDelay=`${i*0.08}s`; }});
+      animarContador('si-total', data.length);
+      animarContador('si-perdidos', data.filter(r => r.tipo === 'perdido').length);
+      animarContador('si-encontrados', data.filter(r => r.tipo === 'encontrado').length);
+    }
+  } catch(e) { showToast('Error cargando datos', 'error'); }
+}
+
+let reportesCache = {};
+
+function toggleBuscador(pantalla) {
+  const buscador = document.getElementById('buscador-' + pantalla);
+  const input = document.getElementById('input-buscador-' + pantalla);
+  if (buscador.style.display === 'none') {
+    buscador.style.display = 'block';
+    input.focus();
+  } else {
+    buscador.style.display = 'none';
+    input.value = '';
+    filtrarReportes(pantalla);
+  }
+}
+
+function filtrarReportes(pantalla) {
+  const query = document.getElementById('input-buscador-' + pantalla).value.toLowerCase().trim();
+  const contenedor = document.getElementById('cards-' + pantalla);
+  const data = reportesCache[pantalla] || [];
+  if (!query) {
+    contenedor.innerHTML = data.map(renderCard).join('');
+    contenedor.querySelectorAll('.dog-card').forEach((c,i) => { if(data[i]) c.addEventListener('click', () => verDetalle(data[i].id)); });
+    return;
+  }
+  const filtrados = data.filter(r =>
+    (r.nombre && r.nombre.toLowerCase().includes(query)) ||
+    (r.raza && r.raza.toLowerCase().includes(query)) ||
+    (r.color && r.color.toLowerCase().includes(query)) ||
+    (r.ubicacion && r.ubicacion.toLowerCase().includes(query))
+  );
+  if (!filtrados.length) {
+    contenedor.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div><div class="empty-sub">Intenta con otro nombre, raza o barrio</div></div>';
+    return;
+  }
+  contenedor.innerHTML = filtrados.map(renderCard).join('');
+  contenedor.querySelectorAll('.dog-card').forEach((c,i) => { if(filtrados[i]) c.addEventListener('click', () => verDetalle(filtrados[i].id)); });
+}
+
+async function generarImagenReporte(r) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 1000;
+  const ctx = canvas.getContext('2d');
+
+  // Fondo degradado morado
+  const grad = ctx.createLinearGradient(0, 0, 0, 1000);
+  grad.addColorStop(0, '#7C3AED');
+  grad.addColorStop(1, '#5B21B6');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 800, 1000);
+
+  // Header logo
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.roundRect(30, 30, 740, 110, 20);
+  ctx.fill();
+
+  ctx.font = 'bold 38px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('🐾 HuellaViva', 50, 80);
+  ctx.font = '20px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillText('Perros Perdidos Santa Marta', 50, 115);
+
+  // Foto del perro
+  if (r.foto_url) {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = rej;
+        img.src = r.foto_url;
+      });
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(50, 165, 700, 380, 20);
+      ctx.clip();
+      ctx.drawImage(img, 50, 165, 700, 380);
+      ctx.restore();
+    } catch(e) {
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.roundRect(50, 165, 700, 380, 20);
+      ctx.fill();
+      ctx.font = '80px sans-serif';
+      ctx.fillText('🐕', 330, 400);
+    }
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.beginPath();
+    ctx.roundRect(50, 165, 700, 380, 20);
+    ctx.fill();
+    ctx.font = '80px sans-serif';
+    ctx.fillText('🐕', 330, 400);
+  }
+
+  // Tipo badge
+  const tipoColor = r.tipo === 'perdido' ? '#EF4444' : '#10B981';
+  const tipoTexto = r.tipo === 'perdido' ? '🚨 PERRO PERDIDO' : r.tipo === 'encontrado' ? '🐾 PERRO ENCONTRADO' : '👁️ AVISTAMIENTO';
+  ctx.fillStyle = tipoColor;
+  ctx.beginPath();
+  ctx.roundRect(50, 570, 700, 60, 12);
+  ctx.fill();
+  ctx.font = 'bold 26px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText(tipoTexto, 400, 610);
+  ctx.textAlign = 'left';
+
+  // Info card
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.roundRect(30, 650, 740, 260, 20);
+  ctx.fill();
+
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillStyle = '#fff';
+  let y = 700;
+  if (r.nombre) { ctx.fillText('🐶 ' + r.nombre, 60, y); y += 45; }
+  if (r.raza) { ctx.font = '22px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText('Raza: ' + r.raza + (r.color ? '  ·  Color: ' + r.color : ''), 60, y); y += 40; }
+  if (r.ubicacion) { ctx.font = '22px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText('📍 ' + r.ubicacion, 60, y); y += 40; }
+  if (r.telefono) { ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#A7F3D0'; ctx.fillText('📞 ' + r.telefono, 60, y); y += 40; }
+  if (r.recompensa) { ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#FCD34D'; ctx.fillText('💰 ' + r.recompensa, 60, y); }
+
+  // Footer
+  ctx.font = '18px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.textAlign = 'center';
+  ctx.fillText('huellavivaapp.com', 400, 960);
+
+  // Descargar
+  const link = document.createElement('a');
+  link.download = 'reporte-' + (r.nombre || 'perro') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('Imagen descargada ✅', 'success');
+}
+
+function tiempoRelativo(fechaStr) {
+  if (!fechaStr) return '';
+  const ahora = new Date();
+  const fecha = new Date(fechaStr);
+  const diff = Math.floor((ahora - fecha) / 1000);
+  let relativo = '';
+  if (diff < 60) relativo = 'Hace un momento';
+  else if (diff < 3600) relativo = 'Hace ' + Math.floor(diff/60) + ' min';
+  else if (diff < 86400) relativo = 'Hace ' + Math.floor(diff/3600) + ' h';
+  else if (diff < 604800) relativo = 'Hace ' + Math.floor(diff/86400) + ' días';
+  else relativo = 'Hace ' + Math.floor(diff/604800) + ' semanas';
+  const fechaExacta = fecha.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+  return relativo + ' · ' + fechaExacta;
+}
+
+function compartirFB(r) {
+  const tipo = r.tipo === 'perdido' ? '🚨 PERRO PERDIDO' : r.tipo === 'encontrado' ? '🐾 PERRO ENCONTRADO' : '👁️ AVISTAMIENTO';
+  const msg = tipo + '\n\n'
+    + (r.nombre ? 'Nombre: ' + r.nombre + '\n' : '')
+    + (r.raza ? 'Raza: ' + r.raza + '\n' : '')
+    + (r.color ? 'Color: ' + r.color + '\n' : '')
+    + (r.ubicacion ? 'Ubicación: ' + r.ubicacion + '\n' : '')
+    + (r.recompensa ? 'Recompensa: ' + r.recompensa + '\n' : '')
+    + (r.telefono ? 'Contacto: ' + r.telefono + '\n' : '')
+    + '\n🔗 Ver mapa: https://huellavivaapp.com'
+    + '\n\n¡Comparte para ayudar! 🐾';
+  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent('https://huellavivaapp.com') + '&quote=' + encodeURIComponent(msg), '_blank');
+}
+
+function compartirWA(r) {
+  const tipo = r.tipo === 'perdido' ? '🚨 PERRO PERDIDO' : r.tipo === 'encontrado' ? '🐾 PERRO ENCONTRADO' : '👁️ AVISTAMIENTO';
+  const msg = tipo + '\n\nNombre: ' + (r.nombre||'Sin nombre') + '\nRaza: ' + (r.raza||'Desconocida') + '\nColor: ' + (r.color||'') + '\nUbicación: ' + (r.ubicacion||'Sin ubicación') + '\n' + (r.recompensa?'Recompensa: '+r.recompensa+'\n':'') + (r.telefono?'Contacto: '+r.telefono+'\n':'') + '\nVer mapa: https://huellavivaapp.com\n\nComparte para ayudar 🐾';
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function skeletonCards(n=3) {
+  return Array(n).fill('').map(() => `
+    <div class="skeleton">
+      <div class="skeleton-avatar"></div>
+      <div class="skeleton-info">
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line narrow"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function diasPerdido(fechaStr) {
+  if (!fechaStr) return 0;
+  return Math.floor((new Date() - new Date(fechaStr)) / 86400000);
+}
+
+function renderCard(r) {
+  const tagClass = r.tipo === 'perdido' ? 'tag-lost' : r.tipo === 'encontrado' ? 'tag-found' : r.tipo === 'adopcion' ? 'tag-adopcion' : 'tag-avist';
+  const label = r.tipo === 'perdido' ? '🚨 Perdido' : r.tipo === 'encontrado' ? '✅ Encontrado' : r.tipo === 'adopcion' ? '🏠 Adopción' : '👁️ Avistamiento';
+  return '<div class="dog-card ' + (r.tipo==='perdido'?'urgent':r.tipo==='adopcion'?'adopcion-card':'') + '">' +
+    '<div class="dog-avatar">' + (r.foto_url ? '<img src="'+r.foto_url+'" onclick="verFoto(\''+r.foto_url+'\')" style="cursor:pointer"/>' : avatarPerro(r)) + '</div>' +
+    '<div class="dog-info">' +
+      '<div class="dog-name">' + (r.nombre||'Sin nombre') + '</div>' +
+      '<div class="dog-meta">' + [r.raza,r.color,r.tamano].filter(Boolean).join(' · ') + '</div>' +
+      '<div class="dog-tags"><span class="tag ' + tagClass + '">' + label + '</span>' + (r.recompensa?'<span class="tag tag-reward">💰 '+r.recompensa+'</span>':'') + (r.tipo==='perdido' && diasPerdido(r.created_at) >= 3 ? '<span class="tag" style="background:#FEE2E2;color:#991B1B;animation:pulse-border 1.5s infinite;">⚠️ '+diasPerdido(r.created_at)+'d perdido</span>' : '') + '</div>' +
+      '<div class="dog-loc">📍 ' + (r.ubicacion||'Sin ubicación') + '</div>' +
+      (r.created_at ? '<div style="font-size:10px;color:#9CA3AF;margin-top:3px;">🕐 ' + tiempoRelativo(r.created_at) + '</div>' : '') +
+      (r.telefono ? '<a href="tel:'+r.telefono+'" style="display:inline-flex;align-items:center;gap:5px;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:20px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px;margin-right:6px;text-decoration:none;">📞 Llamar</a>' : '') +
+      '<a class="wa-btn" onclick="compartirWA(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">📲 WhatsApp</a>' +
+      '<a class="wa-btn" style="background:#EBF3FF;color:#1877F2;border-color:#BFDBFE;margin-left:5px" onclick="compartirFB(' + JSON.stringify(r).replace(/"/g,'&quot;') + ')">📘 Facebook</a>' +
+    '</div></div>';
+}
+
+async function cargarCards(pantalla) {
+  try {
+    let filtro = '', contenedor = '';
+    if (pantalla === 'mapa') { filtro = 'activo=eq.true&order=created_at.desc&limit=5'; contenedor = 'cards-mapa'; }
+    if (pantalla === 'perdidos') { filtro = 'tipo=eq.perdido&activo=eq.true&order=created_at.desc'; contenedor = 'cards-perdidos'; }
+    if (pantalla === 'encontrados') { filtro = 'tipo=eq.encontrado&activo=eq.true&order=created_at.desc'; contenedor = 'cards-encontrados'; }
+    if (pantalla === 'adopcion') { filtro = 'tipo=eq.adopcion&activo=eq.true&order=created_at.desc'; contenedor = 'cards-adopcion'; }
+    const data = await supabase('GET', 'reportes?' + filtro);
+    const el = document.getElementById(contenedor);
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🐾</div><div class="empty-title">Sin reportes aún</div><div class="empty-sub">Sé el primero en reportar</div></div>';
+      return;
+    }
+    window._rep=window._rep||{}; data.forEach(x=>{window._rep[x.id]=x;}); if(pantalla==='perdidos'||pantalla==='encontrados'||pantalla==='adopcion') reportesCache[pantalla]=data; el.innerHTML = data.map(renderCard).join(''); el.querySelectorAll('.dog-card').forEach((c,i)=>{if(data[i]){c.addEventListener('click',()=>verDetalle(data[i].id)); c.style.opacity='0'; c.style.animation=`fadeInUp 0.4s ease forwards`; c.style.animationDelay=`${i*0.08}s`;}});
+    if (document.getElementById('s-total')) {
+      document.getElementById('s-total').textContent = data.length;
+      document.getElementById('s-perdidos').textContent = data.filter(r=>r.tipo==='perdido').length;
+      document.getElementById('s-encontrados').textContent = data.filter(r=>r.tipo==='encontrado').length;
+      const nPerdidos = data.filter(r=>r.tipo==='perdido').length;
+    const badgeEl = document.getElementById('contador');
+    const prevText = badgeEl.textContent;
+    badgeEl.textContent = '🐾 ' + nPerdidos;
+    if (prevText !== badgeEl.textContent) {
+      badgeEl.classList.remove('bump');
+      void badgeEl.offsetWidth;
+      badgeEl.classList.add('bump');
+      setTimeout(() => badgeEl.classList.remove('bump'), 400);
+    }
+    }
+  } catch(e) { showToast('Error cargando datos', 'error'); }
+}
+
+let markersLayer = null;
+
+async function cargarMapa() {
+  if (!mapInstance) {
+    mapInstance = L.map('map').setView([userLat, userLng], 13);
+    const isDarkMode = document.body.classList.contains('dark');
+  const tileUrl = isDarkMode
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileAttr = isDarkMode ? '© CartoDB' : '© OpenStreetMap';
+  L.tileLayer(tileUrl, { attribution: tileAttr }).addTo(mapInstance);
+    const myIconHtml = `
+    <div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(124,58,237,0.2);animation:radar 2s ease-out infinite;"></div>
+      <div style="position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(124,58,237,0.2);animation:radar 2s ease-out infinite 0.4s;"></div>
+      <div style="position:relative;background:#7C3AED;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(124,58,237,0.6);z-index:1;"></div>
+    </div>`;
+  const myIcon = L.divIcon({ className: '', html: myIconHtml, iconSize:[40,40], iconAnchor:[20,20] });
+  L.marker([userLat, userLng], {icon: myIcon}).addTo(mapInstance).bindPopup('Tu ubicación');
+    markersLayer = L.layerGroup().addTo(mapInstance);
+  } else {
+    markersLayer.clearLayers();
+  }
+  try {
+    const data = await supabase('GET', 'reportes?activo=eq.true');
+    data.forEach(r => {
+      if (!r.lat || !r.lng) return;
+      const esAproximada = r.ubicacion_aproximada;
+      const color = esAproximada ? '#9CA3AF' : r.tipo === 'perdido' ? '#EF4444' : r.tipo === 'adopcion' ? '#F59E0B' : '#10B981';
+      const emoji = esAproximada ? '❓' : r.tipo === 'perdido' ? '🚨' : r.tipo === 'adopcion' ? '🏠' : '🐾';
+      const etiqueta = esAproximada
+        ? '<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:#6B7280;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;white-space:nowrap;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍 Aprox.</div>'
+        : r.tipo === 'adopcion' ? '<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:#F59E0B;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;white-space:nowrap;z-index:3;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏠 Adóptame</div>' : '';
+      const innerHtml = r.foto_url
+        ? '<div style="width:44px;height:44px;border-radius:50%;border:3px solid '+color+';box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;background:#fff;position:relative;z-index:2;"><img src="'+r.foto_url+'" style="width:100%;height:100%;object-fit:cover;"/></div>'
+        : '<div style="background:'+color+';width:44px;height:44px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;z-index:2;">'+emoji+'</div>';
+      const animSpeed = r.tipo === 'adopcion' ? '3s' : '2s';
+      const iconHtml = '<div style="position:relative;width:70px;height:90px;display:flex;align-items:flex-end;justify-content:center;">'
+        + etiqueta
+        + '<div style="position:relative;width:70px;height:70px;display:flex;align-items:center;justify-content:center;">'
+        + '<div style="position:absolute;width:70px;height:70px;border-radius:50%;background:'+color.replace(')', ',0.25)')+';animation:radar '+animSpeed+' ease-out infinite;"></div>'
+        + '<div style="position:absolute;width:55px;height:55px;border-radius:50%;background:'+color.replace(')', ',0.2)')+';animation:radar '+animSpeed+' ease-out infinite 0.5s;"></div>'
+        + '<div style="position:absolute;width:44px;height:44px;border-radius:50%;background:'+color.replace(')', ',0.15)')+';animation:radar '+animSpeed+' ease-out infinite 1s;"></div>'
+        + innerHtml
+        + '</div></div>';
+      const icon = L.divIcon({ className: '', html: iconHtml, iconSize:[70,90], iconAnchor:[35,70] });
+      L.marker([r.lat, r.lng], {icon}).addTo(markersLayer).on('click', () => verDetalle(r.id));
+    });
+  } catch(e) {}
+}
+
+let ubicacionTimer = null;
+
+async function buscarUbicacion(query) {
+  const sugerencias = document.getElementById('ubicacion-sugerencias');
+  if (!query || query.length < 3) { sugerencias.style.display = 'none'; return; }
+  clearTimeout(ubicacionTimer);
+  ubicacionTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + ' Santa Marta Colombia') + '&format=json&limit=5&countrycodes=co', { headers: { 'Accept-Language': 'es', 'User-Agent': 'HuellaViva/1.0' } });
+      const data = await res.json();
+      if (!data.length) { sugerencias.style.display = 'none'; return; }
+      sugerencias.style.display = 'block';
+      sugerencias.innerHTML = data.map(d => {
+        const nombre = d.display_name.split(',').slice(0,3).join(',');
+        return `<div onclick="seleccionarUbicacion('${nombre.replace(/'/g,"\'")}',${d.lat},${d.lon})" style="padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #F3F4F6;color:#1E1B4B;font-weight:500;" onmouseover="this.style.background='#F8F7FF'" onmouseout="this.style.background='#fff'">📍 ${nombre}</div>`;
+      }).join('');
+    } catch(e) { sugerencias.style.display = 'none'; }
+  }, 500);
+}
+
+function seleccionarUbicacion(nombre, lat, lng) {
+  document.getElementById('f-ubicacion').value = nombre;
+  document.getElementById('ubicacion-sugerencias').style.display = 'none';
+  userLat = parseFloat(lat);
+  userLng = parseFloat(lng);
+  ubicacionReal = true;
+  showToast('Ubicación seleccionada ✅', 'success');
+}
+
+document.addEventListener('click', function(e) {
+  const sugerencias = document.getElementById('ubicacion-sugerencias');
+  const input = document.getElementById('f-ubicacion');
+  if (sugerencias && e.target !== input && !sugerencias.contains(e.target)) {
+    sugerencias.style.display = 'none';
+  }
+});
+
+function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude; userLng = pos.coords.longitude;
+      ubicacionReal = true;
+      document.getElementById('f-ubicacion').value = userLat.toFixed(5) + ', ' + userLng.toFixed(5);
+      showToast('Ubicación GPS obtenida!', 'success');
+    }, () => showToast('No se pudo obtener GPS', 'error'));
+  }
+}
+
+async function publicarReporte() {
+  if (navigator.vibrate) navigator.vibrate(10);
+  const btn = document.getElementById('btn-reportar');
+  const datos = {
+    tipo: document.getElementById('f-tipo').value,
+    nombre: document.getElementById('f-nombre').value,
+    raza: document.getElementById('f-raza').value,
+    color: document.getElementById('f-color').value,
+    tamano: document.getElementById('f-tamano').value,
+    descripcion: document.getElementById('f-desc').value,
+    ubicacion: document.getElementById('f-ubicacion').value,
+    recompensa: document.getElementById('f-recompensa').value,
+    telefono: document.getElementById('f-telefono').value,
+    lat: userLat, lng: userLng, activo: true, ubicacion_aproximada: !ubicacionReal
+  };
+  if (!datos.ubicacion) { showToast('Escribe la ubicación', 'error'); return; }
+  if (!ubicacionReal) {
+    // Mostrar modal de advertencia en lugar de toast
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="font-size:40px;margin-bottom:12px;">📍</div>
+        <div style="font-size:17px;font-weight:800;color:#1E1B4B;margin-bottom:8px;">Ubicación requerida</div>
+        <div style="font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:20px;">Para que el perro aparezca en el mapa activa tu GPS o selecciona un barrio.<br><br>Si el perro está fuera del área, puedes publicar de todas formas.</div>
+        <button id="modal-gps" style="width:100%;background:#7C3AED;color:#fff;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px;font-family:Plus Jakarta Sans,sans-serif;">📡 Activar GPS ahora</button>
+        <button id="modal-igual" style="width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px;font-family:Plus Jakarta Sans,sans-serif;">Publicar sin ubicación exacta</button>
+        <button id="modal-cancel" style="width:100%;background:transparent;color:#6B7280;border:none;padding:10px;border-radius:12px;font-weight:600;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Cancelar</button>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('modal-gps').onclick = () => { document.body.removeChild(modal); getLocation(); };
+    document.getElementById('modal-cancel').onclick = () => document.body.removeChild(modal);
+    document.getElementById('modal-igual').onclick = async () => {
+      document.body.removeChild(modal);
+      ubicacionReal = true;
+      await publicarReporte();
+    };
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const fotoInput = document.getElementById('f-foto');
+    if (fotoInput.files && fotoInput.files[0]) {
+      btn.textContent = 'Subiendo foto...';
+      datos.foto_url = await subirFoto(fotoInput.files[0]);
+    }
+    btn.textContent = 'Publicando...';
+    const res = await supabase('POST', 'reportes', datos);
+    if (res && res[0] && res[0].id) {
+      const misReportes = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
+      misReportes.push(res[0].id);
+      localStorage.setItem('mis_reportes', JSON.stringify(misReportes));
+    }
+    showToast('Reporte publicado!', 'success');
+    setTimeout(() => mostrarModalExito(datos.tipo), 1000);
+    try {
+      const tipoTexto = datos.tipo === 'perdido' ? 'Perro perdido' : datos.tipo === 'encontrado' ? 'Perro encontrado' : 'Avistamiento';
+      const heading = tipoTexto + (datos.nombre ? ': ' + datos.nombre : '');
+      const content = [datos.raza, datos.ubicacion].filter(Boolean).join(' - ') || 'Nuevo reporte en tu zona';
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Key os_v2_app_tiq2o2642ndr5hsx7ieajlhiq5t5fkyqkvwufgekn7x3xyqp5k263d2pduoixsd4ouezukm7yisylikpiozdkp3bga7etl46tdll4li'
+        },
+        body: JSON.stringify({
+          app_id: '9a21a76b-dcd3-471e-9e57-fa0804ace887',
+          included_segments: ['All'],
+          headings: { es: heading, en: heading },
+          contents: { es: content, en: content },
+          url: 'https://huellavivaapp.com'
+        })
+      });
+    } catch(e) {}
+    if (window.OneSignal) OneSignal.User.PushSubscription.optIn();
+    ['f-nombre','f-raza','f-color','f-desc','f-ubicacion','f-recompensa','f-telefono'].forEach(id => document.getElementById(id).value = '');
+    fotoInput.value = '';
+    document.getElementById('foto-preview').style.display = 'none';
+    setTimeout(() => showTab(datos.tipo === 'adopcion' ? 'adopcion' : datos.tipo === 'encontrado' ? 'encontrados' : 'perdidos'), 1500);
+  } catch(e) { showToast('Error al publicar', 'error'); }
+  btn.disabled = false;
+  btn.textContent = 'Publicar reporte 🐾';
+}
+
+function verFoto(src) {
+  const o = document.createElement('div');
+  o.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+  o.innerHTML = '<img src="'+src+'" style="max-width:95%;max-height:90vh;border-radius:16px;"/><div style="position:absolute;top:20px;right:20px;color:#fff;font-size:32px;">✕</div>';
+  o.onclick = () => document.body.removeChild(o);
+  document.body.appendChild(o);
+}
+
+cargarInicio();
+cargarMapa();
+cargarCards('mapa');
+mostrarOnboarding();
+
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 500);
+  }
+}, 2000);
+
+async function activarNotis() {
+  try {
+    const permission = await Notification.requestPermission();
+    const btn = document.getElementById('noti-btn');
+    if (permission === 'granted') {
+      if (btn) { btn.textContent = '✅ Activas'; btn.style.background = '#6B7280'; }
+      showToast('Notificaciones activadas!', 'success');
+      if (window.OneSignal) OneSignal.User.PushSubscription.optIn();
+    } else {
+      showToast('Permiso denegado', 'error');
+    }
+  } catch(e) {
+    showToast('No se pudo activar', 'error');
+  }
+}
+
+let obActual = 0;
+const obTotal = 3;
+
+function mostrarOnboarding() {
+  if (localStorage.getItem('hv-onboarding') === 'done') return;
+  const ob = document.getElementById('onboarding');
+  ob.style.display = 'flex';
+}
+
+function obSiguiente() {
+  if (obActual < obTotal - 1) {
+    document.getElementById('ob-' + obActual).style.transform = 'translateX(-100%)';
+    obActual++;
+    document.getElementById('ob-' + obActual).style.transform = 'translateX(0)';
+    document.getElementById('od-' + (obActual-1)).style.background = 'rgba(255,255,255,0.4)';
+    document.getElementById('od-' + (obActual-1)).style.width = '10px';
+    document.getElementById('od-' + obActual).style.background = '#fff';
+    document.getElementById('od-' + obActual).style.width = '24px';
+    document.getElementById('od-' + obActual).style.borderRadius = '5px';
+    if (obActual === obTotal - 1) {
+      document.getElementById('ob-btn').textContent = '¡Empezar! 🐾';
+    }
+  } else {
+    obSaltar();
+  }
+}
+
+function obSaltar() {
+  localStorage.setItem('hv-onboarding', 'done');
+  const ob = document.getElementById('onboarding');
+  ob.style.opacity = '0';
+  ob.style.transition = 'opacity 0.4s ease';
+  setTimeout(() => ob.style.display = 'none', 400);
+}
+
+function crearRipple(e) {
+  const btn = document.getElementById('btn-report-nav');
+  const ripple = document.createElement('span');
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top - size / 2;
+  ripple.className = 'ripple-effect';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('darkMode', isDark);
+  if (mapInstance) {
+    mapInstance.remove();
+    mapInstance = null;
+    markersLayer = null;
+    cargarMapa();
+  }
+}
+if (localStorage.getItem('darkMode') === 'true') {
+  document.body.classList.add('dark');
+  document.getElementById('dark-btn').textContent = '☀️';
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+function verDetalle(id) {
+  const r = window._rep && window._rep[id];
+  if (!r) return;
+  const tagClass = r.tipo==='perdido'?'tag-lost':r.tipo==='encontrado'?'tag-found':'tag-avist';
+  const label = r.tipo==='perdido'?'Perdido':r.tipo==='encontrado'?'Encontrado':'Avistamiento';
+  const fecha = r.created_at ? new Date(r.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '';
+  const m = document.createElement('div');
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end;';
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#F8F7FF;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;';
+  card.innerHTML =
+    '<div style="width:40px;height:4px;background:#E5E7EB;border-radius:2px;margin:0 auto 16px;"></div>' +
+    (r.foto_url ? '<img src="'+r.foto_url+'" style="width:100%;border-radius:14px;max-height:200px;object-fit:cover;margin-bottom:14px;" />' : '') +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<div style="font-weight:800;font-size:19px;color:#1E1B4B;">'+(r.nombre||'Sin nombre')+'</div>' +
+      '<span class="tag '+tagClass+'">'+label+'</span>' +
+    '</div>' +
+    ([r.raza,r.color,r.tamano].filter(Boolean).length ? '<div style="font-size:13px;color:#6B7280;margin-bottom:10px;">'+[r.raza,r.color,r.tamano].filter(Boolean).join(' · ')+'</div>' : '') +
+    (r.descripcion ? '<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;font-size:13px;color:#374151;line-height:1.6;border:1px solid #E5E7EB;">'+r.descripcion+'</div>' : '') +
+    '<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:14px;border:1px solid #E5E7EB;font-size:13px;">' +
+      (r.ubicacion ? '<div style="margin-bottom:5px;">📍 '+r.ubicacion+(r.lat&&r.lng ? ' <a href="https://www.google.com/maps?q='+r.lat+','+r.lng+'" target="_blank" style="color:#7C3AED;font-size:11px;font-weight:700;text-decoration:none;">(Ver en mapa →)</a>' : '')+'</div>' : '') +
+      (fecha ? '<div style="color:#6B7280;margin-bottom:5px;">🕐 '+fecha+'</div>' : '') +
+      (r.recompensa ? '<div style="color:#D97706;font-weight:700;">💰 '+r.recompensa+'</div>' : '') +
+    '</div>';
+  if (r.telefono) {
+    const t=document.createElement('a');
+    t.href='tel:'+r.telefono;
+    t.style.cssText='display:block;background:#10B981;color:#fff;padding:13px;border-radius:12px;text-align:center;text-decoration:none;font-weight:700;font-size:14px;margin-bottom:8px;';
+    t.textContent='📞 Llamar: '+r.telefono;
+    card.appendChild(t);
+  }
+  const w=document.createElement('button');
+  w.style.cssText='width:100%;background:#25D366;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+  w.textContent='📲 Compartir en WhatsApp';
+  w.onclick=()=>compartirWA(r);
+  card.appendChild(w);
+  const f=document.createElement('button');
+  f.style.cssText='width:100%;background:#1877F2;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+  f.textContent='📘 Compartir en Facebook';
+  f.onclick=()=>compartirFB(r);
+  card.appendChild(f);
+  const img=document.createElement('button');
+  img.style.cssText='width:100%;background:#F59E0B;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+  img.textContent='📥 Guardar imagen del reporte';
+  img.onclick=()=>generarImagenReporte(r);
+  card.appendChild(img);
+  const misReportes = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
+  if (misReportes.includes(r.id)) {
+    const found = document.createElement('button');
+    found.style.cssText = 'width:100%;background:#10B981;color:#fff;padding:13px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+    found.textContent = '✅ Ya encontré a mi perro';
+    found.onclick = async () => {
+      if (!confirm('¿Confirmas que ya encontraste a tu perro? El reporte desaparecerá para todos.')) return;
+      try {
+        await supabase('PATCH', 'reportes?id=eq.' + r.id, { activo: false });
+        const nuevos = misReportes.filter(x => x !== r.id);
+        localStorage.setItem('mis_reportes', JSON.stringify(nuevos));
+        document.body.removeChild(m);
+        showToast('¡Qué alegría! Reporte eliminado 🎉', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } catch(e) { showToast('Error al cerrar reporte', 'error'); }
+    };
+    card.appendChild(found);
+  }
+  const c=document.createElement('button');
+  c.style.cssText='width:100%;background:#F3F2FF;color:#7C3AED;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;';
+  c.textContent='Cerrar';
+  c.onclick=()=>document.body.removeChild(m);
+  card.appendChild(c);
+  m.appendChild(card);
+  m.onclick=(e)=>{if(e.target===m)document.body.removeChild(m);};
+  document.body.appendChild(m);
+}
+</script>
+</body>
+</html>

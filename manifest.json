@@ -5,15 +5,15 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#7C3AED",
-  "description": "Reporta y encuentra perros perdidos.",
+  "description": "Reporta y encuentra perros perdidos en Santa Marta, Colombia.",
   "icons": [
     {
-      "src": "/icono-192.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/icono-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

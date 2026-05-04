@@ -15,19 +15,9 @@ module.exports = async function handler(req, res) {
           contents: [{
             parts: [
               { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
-              { text: 'Analiza esta foto de un perro. Responde SOLO en JSON sin markdown, con estos campos: {"raza":"nombre de la raza en español o Mestizo si es criollo","color":"color principal del pelaje","tamano":"Pequeño o Mediano o Grande","descripcion":"descripción breve de 1 línea del perro"}' }
+              { text: 'Analiza esta foto de un perro. Responde SOLO en JSON sin markdown, con estos campos: {"raza":"nombre de la raza en español o Mestizo si es criollo","color":"color principal del pelaje","tamano":"Pequeño o Mediano o Grande","descripcion":"descripcion breve de 1 linea del perro"}' }
             ]
           }]
         })
       }
     );
-
-    const data = await response.json();
-    const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-    const info = JSON.parse(text);
-    return res.status(200).json({ ok: true, ...info });
-  } catch (e) {
-    console.error('Gemini error:', e.message);
-    return res.status(500).json({ ok: false, error: e.message });
-  }
-}

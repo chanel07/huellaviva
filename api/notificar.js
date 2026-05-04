@@ -2,10 +2,8 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
   try {
     const { titulo, mensaje, url } = req.body;
-
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
@@ -20,3 +18,15 @@ module.exports = async function handler(req, res) {
         url: url || 'https://huellavivaapp.com',
         chrome_web_icon: 'https://huellavivaapp.com/icon-192.png',
       })
+    });
+    const data = await response.json();
+    console.log('OneSignal response:', JSON.stringify(data));
+    if (data.errors) {
+      return res.status(400).json({ ok: false, errors: data.errors });
+    }
+    return res.status(200).json({ ok: true, id: data.id });
+  } catch (e) {
+    console.error('Error:', e.message);
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+}

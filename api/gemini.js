@@ -4,13 +4,13 @@ module.exports = async function handler(req, res) {
   }
   try {
     const { image, mediaType } = req.body;
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + process.env.GEMINI_KEY, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + process.env.GEMINI_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [
           { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
-          { text: 'Analiza esta foto de un perro. Responde SOLO en JSON sin markdown: {"raza":"raza en español o Mestizo","color":"color del pelaje","tamano":"Pequeno o Mediano o Grande","descripcion":"descripcion breve"}' }
+          { text: 'Analiza esta foto de un perro. Responde SOLO en JSON sin markdown: {"raza":"raza en espanol o Mestizo","color":"color del pelaje","tamano":"Pequeno o Mediano o Grande","descripcion":"descripcion breve"}' }
         ]}]
       })
     });

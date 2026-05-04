@@ -23,8 +23,16 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    return res.status(200).json({ ok: true, id: data.id });
+    console.log('OneSignal response:', JSON.stringify(data));
+    
+    if (data.errors) {
+      console.error('OneSignal errors:', JSON.stringify(data.errors));
+      return res.status(400).json({ ok: false, errors: data.errors });
+    }
+
+    return res.status(200).json({ ok: true, id: data.id, recipients: data.recipients });
   } catch (e) {
+    console.error('Error:', e.message);
     return res.status(500).json({ ok: false, error: e.message });
   }
 }

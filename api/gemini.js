@@ -15,16 +15,23 @@ module.exports = async function handler(req, res) {
       })
     });
     const data = await response.json();
+    console.log('GEMINI RESPUESTA COMPLETA:', JSON.stringify(data));
     if (!data.candidates || !data.candidates[0]) {
+      console.log('SIN CANDIDATES:', JSON.stringify(data));
       return res.status(400).json({ ok: false, raw: data });
     }
     const raw = data.candidates[0].content.parts[0].text;
+    console.log('TEXTO RAW:', raw);
     const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return res.status(400).json({ ok: false, raw });
+    if (!match) {
+      console.log('SIN MATCH JSON');
+      return res.status(400).json({ ok: false, raw });
+    }
     const info = JSON.parse(match[0]);
+    console.log('INFO FINAL:', JSON.stringify(info));
     return res.status(200).json({ ok: true, ...info });
   } catch (e) {
-    console.error('Error:', e.message);
+    console.error('ERROR:', e.message);
     return res.status(500).json({ ok: false, error: e.message });
   }
 }

@@ -4,7 +4,7 @@ module.exports = async function handler(req, res) {
   }
   try {
     const { image, mediaType } = req.body;
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + process.env.GEMINI_KEY, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + process.env.GEMINI_KEY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -15,20 +15,13 @@ module.exports = async function handler(req, res) {
       })
     });
     const data = await response.json();
-    console.log('GEMINI RESPUESTA COMPLETA:', JSON.stringify(data));
     if (!data.candidates || !data.candidates[0]) {
-      console.log('SIN CANDIDATES:', JSON.stringify(data));
       return res.status(400).json({ ok: false, raw: data });
     }
     const raw = data.candidates[0].content.parts[0].text;
-    console.log('TEXTO RAW:', raw);
     const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) {
-      console.log('SIN MATCH JSON');
-      return res.status(400).json({ ok: false, raw });
-    }
+    if (!match) return res.status(400).json({ ok: false, raw });
     const info = JSON.parse(match[0]);
-    console.log('INFO FINAL:', JSON.stringify(info));
     return res.status(200).json({ ok: true, ...info });
   } catch (e) {
     console.error('ERROR:', e.message);

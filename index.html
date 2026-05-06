@@ -1281,14 +1281,23 @@ async function publicarReporte() {
     }
     btn.textContent = 'Publicando...';
     const res = await supabase('POST', 'reportes', datos);
-    if (res && res[0] && res[0].id) {
+    console.log('📤 Respuesta de Supabase:', res);
+    // Tolerante a diferentes formatos: array [{id}], objeto {id} directo, o nada
+    const reporteId = (res && res[0] && res[0].id) || (res && res.id) || null;
+    if (reporteId) {
       const misReportes = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
-      misReportes.push(res[0].id);
+      misReportes.push(reporteId);
       localStorage.setItem('mis_reportes', JSON.stringify(misReportes));
+      console.log('💾 Reporte guardado en localStorage:', reporteId);
       // 🔍 Si es "encontrado", buscar coincidencias con perdidos activos
       if (datos.tipo === 'encontrado' && datos.foto_url) {
-        buscarCoincidenciasIA(res[0].id, datos).catch(e => console.warn('match err', e));
+        console.log('🔍 Disparando búsqueda IA para:', reporteId);
+        buscarCoincidenciasIA(reporteId, datos).catch(e => console.warn('match err', e));
+      } else {
+        console.log('ℹ️ No se dispara IA. Tipo:', datos.tipo, '| Foto:', !!datos.foto_url);
       }
+    } else {
+      console.warn('⚠️ Supabase no devolvió ID. Respuesta:', res);
     }
     showToast('Reporte publicado!', 'success');
     setTimeout(() => mostrarModalExito(datos.tipo), 1000);

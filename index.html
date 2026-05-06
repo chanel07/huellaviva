@@ -77,6 +77,51 @@
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 500; }
     .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .section-title { font-weight: 700; font-size: 16px; color: var(--text); margin: 18px 0 4px; letter-spacing: -0.3px; }
+    /* === Coincidencias IA === */
+    .match-banner { background: linear-gradient(135deg, #7C3AED, #5B21B6); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; color: #fff; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 24px rgba(124,58,237,0.35); cursor: pointer; position: relative; overflow: hidden; animation: fadeInUp 0.4s ease both, match-pulse 2.5s ease-in-out infinite; }
+    @keyframes match-pulse { 0%,100% { box-shadow: 0 8px 24px rgba(124,58,237,0.35); } 50% { box-shadow: 0 8px 32px rgba(124,58,237,0.6); } }
+    .match-banner::before { content: ''; position: absolute; top: -40%; right: -20%; width: 180px; height: 180px; background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%); pointer-events: none; }
+    .match-banner-icon { font-size: 28px; flex-shrink: 0; animation: match-bounce 1.6s ease-in-out infinite; }
+    @keyframes match-bounce { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-4px) rotate(8deg); } }
+    .match-banner-text { flex: 1; min-width: 0; }
+    .match-banner-title { font-weight: 800; font-size: 14px; line-height: 1.2; margin-bottom: 2px; }
+    .match-banner-sub { font-size: 11px; opacity: 0.9; font-weight: 500; }
+    .match-banner-arrow { font-size: 18px; opacity: 0.9; }
+    /* Modal de comparación */
+    .match-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 99990; display: flex; align-items: flex-end; justify-content: center; animation: fadeInModal 0.25s ease both; }
+    @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+    .match-modal { background: var(--surface); width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; border-radius: 24px 24px 0 0; padding: 0; animation: slideUpModal 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes slideUpModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .match-modal-header { padding: 20px 20px 12px; text-align: center; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 2; }
+    .match-modal-grab { width: 40px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 12px; }
+    .match-modal-title { font-weight: 800; font-size: 18px; color: var(--text); margin-bottom: 4px; }
+    .match-modal-sub { font-size: 12px; color: var(--muted); }
+    .match-pair { padding: 16px; }
+    .match-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .match-photo-wrap { position: relative; }
+    .match-photo-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 12px; z-index: 2; letter-spacing: 0.3px; }
+    .match-photo-label.found { background: var(--green); }
+    .match-photo-label.lost { background: var(--red); }
+    .match-photo-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--surface2); }
+    .match-score { background: linear-gradient(135deg, var(--primary-light), #fff); border: 1.5px solid var(--primary); border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 14px; }
+    .match-score-num { font-size: 32px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .match-score-lbl { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .match-score-reasons { font-size: 12px; color: var(--text); margin-top: 8px; line-height: 1.5; text-align: left; background: rgba(255,255,255,0.6); padding: 8px 10px; border-radius: 8px; }
+    .match-info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; margin-bottom: 14px; }
+    .match-info-block { background: var(--surface2); border-radius: 10px; padding: 10px; }
+    .match-info-block-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .match-info-block-content { font-size: 12px; color: var(--text); font-weight: 500; line-height: 1.4; }
+    .match-actions { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 20px; }
+    .match-btn { border: none; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; font-family: var(--font); cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .match-btn:active { transform: scale(0.97); }
+    .match-btn-yes { background: var(--green); color: #fff; }
+    .match-btn-no { background: var(--surface2); color: var(--muted); }
+    .match-btn-skip { background: transparent; color: var(--muted); padding: 10px; }
+    /* Indicador "buscando coincidencias" */
+    .match-searching { background: linear-gradient(90deg, var(--primary-light), #fff, var(--primary-light)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 12px; padding: 12px 14px; margin: 10px 0; font-size: 13px; color: var(--primary-dark); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .match-searching-spin { width: 18px; height: 18px; border: 2.5px solid var(--primary-light); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .screen-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; color: #fff; }
     .screen-header-title { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
     .screen-header-sub { font-size: 12px; opacity: 0.8; font-weight: 500; }
@@ -342,6 +387,7 @@ body.dark {
     </div>
   </div>
   <div id="ultimo-reporte" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:8px;font-weight:500;"></div>
+  <div id="match-banner-container"></div>
   <div class="section-title">Casos recientes</div>
   <div class="cards" id="cards-inicio"><div id="sk-inicio"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div></div>
 </div>
@@ -729,6 +775,7 @@ function animarContador(elementId, valorFinal) {
 
 async function cargarInicio() {
   cargarClima();
+  mostrarBannerMatches().catch(()=>{});
   try {
     const data = await supabase('GET', 'reportes?activo=eq.true&order=created_at.desc&limit=20');
     const el = document.getElementById('cards-inicio');
@@ -1238,6 +1285,10 @@ async function publicarReporte() {
       const misReportes = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
       misReportes.push(res[0].id);
       localStorage.setItem('mis_reportes', JSON.stringify(misReportes));
+      // 🔍 Si es "encontrado", buscar coincidencias con perdidos activos
+      if (datos.tipo === 'encontrado' && datos.foto_url) {
+        buscarCoincidenciasIA(res[0].id, datos).catch(e => console.warn('match err', e));
+      }
     }
     showToast('Reporte publicado!', 'success');
     setTimeout(() => mostrarModalExito(datos.tipo), 1000);
@@ -1275,6 +1326,258 @@ async function publicarReporte() {
   } catch(e) { showToast('Error al publicar', 'error'); }
   btn.disabled = false;
   btn.textContent = 'Publicar reporte 🐾';
+}
+
+// ============================================
+// 🔍 SISTEMA DE COINCIDENCIAS CON IA (Gemini Vision)
+// ============================================
+const MATCH_THRESHOLD = 70; // % mínimo para considerar coincidencia
+const MATCH_DIAS_VENTANA = 60; // solo comparar con perdidos de los últimos N días
+
+async function buscarCoincidenciasIA(reporteEncontradoId, datosEncontrado) {
+  // Mostrar indicador en pantalla de inicio si está visible
+  mostrarIndicadorBusqueda();
+  try {
+    // 1. Traer todos los perdidos activos recientes
+    const desde = new Date(Date.now() - MATCH_DIAS_VENTANA*24*60*60*1000).toISOString();
+    const perdidos = await supabase('GET', `reportes?tipo=eq.perdido&activo=eq.true&created_at=gte.${desde}&order=created_at.desc&limit=40`);
+    if (!perdidos || !perdidos.length) { ocultarIndicadorBusqueda(); return; }
+
+    // 2. Pre-filtrar por tamaño/distancia (evita gastar IA en casos absurdos)
+    const candidatos = perdidos.filter(p => {
+      if (!p.foto_url) return false;
+      // Mismo tamaño o tamaño cercano
+      const tamCoincide = !p.tamano || !datosEncontrado.tamano || p.tamano === datosEncontrado.tamano;
+      // Distancia geográfica razonable (50km máx en Santa Marta)
+      let distOk = true;
+      if (p.lat && p.lng && datosEncontrado.lat && datosEncontrado.lng) {
+        const d = distanciaKm(p.lat, p.lng, datosEncontrado.lat, datosEncontrado.lng);
+        distOk = d <= 50;
+      }
+      return tamCoincide && distOk;
+    });
+    if (!candidatos.length) { ocultarIndicadorBusqueda(); return; }
+
+    // 3. Llamar al endpoint de match (que usa Gemini Vision en el backend)
+    const matchResp = await fetch('/api/match-ia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        encontrado: {
+          id: reporteEncontradoId,
+          foto_url: datosEncontrado.foto_url,
+          raza: datosEncontrado.raza, color: datosEncontrado.color,
+          tamano: datosEncontrado.tamano, genero: datosEncontrado.genero,
+          descripcion: datosEncontrado.descripcion, ubicacion: datosEncontrado.ubicacion
+        },
+        perdidos: candidatos.map(p => ({
+          id: p.id, foto_url: p.foto_url, nombre: p.nombre, raza: p.raza,
+          color: p.color, tamano: p.tamano, genero: p.genero,
+          descripcion: p.descripcion, ubicacion: p.ubicacion
+          // NOTA: no mandamos teléfono — Google puede usar prompts del free tier
+          // para entrenamiento. El tel se usa solo en el frontend para WhatsApp.
+        }))
+      })
+    });
+    if (!matchResp.ok) throw new Error('match-ia fallo');
+    const { matches } = await matchResp.json();
+    ocultarIndicadorBusqueda();
+
+    // 4. Guardar matches con score >= threshold
+    const buenos = (matches || []).filter(m => m.score >= MATCH_THRESHOLD).sort((a,b) => b.score - a.score);
+    if (!buenos.length) {
+      showToast('🔍 Revisamos los perdidos: sin coincidencias claras', 'success');
+      return;
+    }
+
+    // 5. Insertar en tabla matches y notificar
+    for (const m of buenos) {
+      try {
+        await supabase('POST', 'matches', {
+          reporte_perdido_id: m.perdido_id,
+          reporte_encontrado_id: reporteEncontradoId,
+          score: m.score, razones: m.razones || '', estado: 'pendiente'
+        });
+      } catch(e) { console.warn('insert match err', e); }
+    }
+
+    // 6. Mostrar al que reportó el hallazgo
+    const top = buenos[0];
+    showToast(`🎉 ${buenos.length} posible${buenos.length>1?'s':''} coincidencia${buenos.length>1?'s':''} encontrada${buenos.length>1?'s':''}!`, 'success');
+    setTimeout(() => mostrarBannerMatches(buenos.length), 1500);
+
+    // 7. Disparar push al dueño del top match (vía endpoint backend)
+    try {
+      const perdidoTop = candidatos.find(c => c.id === top.perdido_id);
+      if (perdidoTop) {
+        fetch('/api/notificar-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            perdido_id: perdidoTop.id,
+            encontrado_id: reporteEncontradoId,
+            score: top.score,
+            nombre_perro: perdidoTop.nombre || 'tu perro'
+          })
+        }).catch(()=>{});
+      }
+    } catch(e) {}
+  } catch(e) {
+    console.warn('buscarCoincidenciasIA error', e);
+    ocultarIndicadorBusqueda();
+  }
+}
+
+function distanciaKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, toRad = x => x*Math.PI/180;
+  const dLat = toRad(lat2-lat1), dLng = toRad(lng2-lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function mostrarIndicadorBusqueda() {
+  const cont = document.getElementById('match-banner-container');
+  if (!cont) return;
+  cont.innerHTML = `<div class="match-searching"><div class="match-searching-spin"></div><div>Buscando coincidencias con perros perdidos…</div></div>`;
+}
+function ocultarIndicadorBusqueda() {
+  const cont = document.getElementById('match-banner-container');
+  if (cont && cont.querySelector('.match-searching')) cont.innerHTML = '';
+}
+
+async function mostrarBannerMatches(cantidad) {
+  const cont = document.getElementById('match-banner-container');
+  if (!cont) return;
+  // Buscar matches pendientes que involucren a "mis reportes"
+  const mis = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
+  if (!mis.length && !cantidad) { cont.innerHTML = ''; return; }
+  let total = cantidad || 0;
+  if (!total) {
+    try {
+      const filtro = mis.map(id => `reporte_perdido_id.eq.${id},reporte_encontrado_id.eq.${id}`).join(',');
+      const resp = await supabase('GET', `matches?or=(${filtro})&estado=eq.pendiente&order=score.desc&limit=10`);
+      total = (resp || []).length;
+    } catch(e) { total = 0; }
+  }
+  if (!total) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `
+    <div class="match-banner" onclick="abrirModalMatches()">
+      <div class="match-banner-icon">🎯</div>
+      <div class="match-banner-text">
+        <div class="match-banner-title">${total} posible${total>1?'s':''} coincidencia${total>1?'s':''} con IA</div>
+        <div class="match-banner-sub">Toca para revisar las fotos lado a lado</div>
+      </div>
+      <div class="match-banner-arrow">→</div>
+    </div>`;
+}
+
+async function abrirModalMatches() {
+  if (navigator.vibrate) navigator.vibrate(15);
+  const mis = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
+  let matches = [];
+  try {
+    if (mis.length) {
+      const filtro = mis.map(id => `reporte_perdido_id.eq.${id},reporte_encontrado_id.eq.${id}`).join(',');
+      matches = await supabase('GET', `matches?or=(${filtro})&estado=eq.pendiente&order=score.desc&limit=10`) || [];
+    }
+    // Si no hay del usuario, mostrar las del último encontrado publicado
+    if (!matches.length) {
+      const ultimo = mis[mis.length-1];
+      if (ultimo) matches = await supabase('GET', `matches?reporte_encontrado_id=eq.${ultimo}&estado=eq.pendiente&order=score.desc&limit=10`) || [];
+    }
+  } catch(e) { matches = []; }
+  if (!matches.length) { showToast('Sin coincidencias pendientes', 'success'); return; }
+  // Hidratar reportes
+  const ids = [...new Set(matches.flatMap(m => [m.reporte_perdido_id, m.reporte_encontrado_id]))];
+  const reportes = await supabase('GET', `reportes?id=in.(${ids.join(',')})`) || [];
+  const byId = Object.fromEntries(reportes.map(r => [r.id, r]));
+  abrirModalMatchEspecifico(matches, byId, 0);
+}
+
+function abrirModalMatchEspecifico(matches, byId, idx) {
+  const m = matches[idx];
+  if (!m) { document.querySelectorAll('.match-modal-bg').forEach(el => el.remove()); return; }
+  const perdido = byId[m.reporte_perdido_id];
+  const encontrado = byId[m.reporte_encontrado_id];
+  if (!perdido || !encontrado) { abrirModalMatchEspecifico(matches, byId, idx+1); return; }
+
+  document.querySelectorAll('.match-modal-bg').forEach(el => el.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'match-modal-bg';
+  const razones = (m.razones || '').slice(0, 200);
+  const tel = perdido.telefono ? perdido.telefono.replace(/\D/g, '') : '';
+  const waNumero = tel.length === 10 ? '57' + tel : tel;
+  const waMsg = encodeURIComponent(`¡Hola! Creo que encontré a tu perro${perdido.nombre ? ' '+perdido.nombre : ''} 🐕. Lo vi en ${encontrado.ubicacion || 'Santa Marta'}. ¿Podemos coordinar?`);
+
+  overlay.innerHTML = `
+    <div class="match-modal" onclick="event.stopPropagation()">
+      <div class="match-modal-header">
+        <div class="match-modal-grab"></div>
+        <div class="match-modal-title">🎯 Posible coincidencia</div>
+        <div class="match-modal-sub">Match ${idx+1} de ${matches.length} · Detectado por IA</div>
+      </div>
+      <div class="match-pair">
+        <div class="match-photos">
+          <div class="match-photo-wrap">
+            <div class="match-photo-label lost">PERDIDO</div>
+            <img class="match-photo-img" src="${perdido.foto_url || ''}" onerror="this.style.background='var(--surface2)';this.src=''"/>
+          </div>
+          <div class="match-photo-wrap">
+            <div class="match-photo-label found">ENCONTRADO</div>
+            <img class="match-photo-img" src="${encontrado.foto_url || ''}" onerror="this.style.background='var(--surface2)';this.src=''"/>
+          </div>
+        </div>
+        <div class="match-score">
+          <div class="match-score-num">${m.score}%</div>
+          <div class="match-score-lbl">Similitud según IA</div>
+          ${razones ? `<div class="match-score-reasons">💡 ${razones}</div>` : ''}
+        </div>
+        <div class="match-info-row">
+          <div class="match-info-block">
+            <div class="match-info-block-title">Perdido</div>
+            <div class="match-info-block-content">${[perdido.nombre, perdido.raza, perdido.color].filter(Boolean).join(' · ') || 'Sin datos'}<br><span style="color:var(--muted);font-size:11px;">${perdido.ubicacion || ''}</span></div>
+          </div>
+          <div class="match-info-block">
+            <div class="match-info-block-title">Encontrado</div>
+            <div class="match-info-block-content">${[encontrado.raza, encontrado.color].filter(Boolean).join(' · ') || 'Sin datos'}<br><span style="color:var(--muted);font-size:11px;">${encontrado.ubicacion || ''}</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="match-actions">
+        ${waNumero ? `<button class="match-btn match-btn-yes" onclick="confirmarMatch('${m.id}','${waNumero}','${waMsg}')">✅ ¡Sí, parece ser! Contactar dueño</button>` : `<button class="match-btn match-btn-yes" onclick="confirmarMatch('${m.id}','','')">✅ Sí, parece ser</button>`}
+        <button class="match-btn match-btn-no" onclick="descartarMatch('${m.id}', ${idx}, ${matches.length})">❌ No es el mismo perro</button>
+        <button class="match-btn match-btn-skip" onclick="this.closest('.match-modal-bg').remove()">Revisar después</button>
+      </div>
+    </div>`;
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  // Guardar para navegar
+  window._matchesActuales = { matches, byId, idx };
+}
+
+async function confirmarMatch(matchId, waNumero, waMsg) {
+  if (navigator.vibrate) navigator.vibrate([15,40,15]);
+  try { await supabase('PATCH', `matches?id=eq.${matchId}`, { estado: 'confirmado' }); } catch(e) {}
+  document.querySelectorAll('.match-modal-bg').forEach(el => el.remove());
+  if (typeof lanzarConfetti === 'function') lanzarConfetti();
+  showToast('🎉 ¡Excelente! Abriendo WhatsApp...', 'success');
+  if (waNumero) {
+    setTimeout(() => { window.open(`https://wa.me/${waNumero}?text=${waMsg}`, '_blank'); }, 800);
+  }
+  // Refrescar banner
+  setTimeout(() => mostrarBannerMatches(), 1500);
+}
+
+async function descartarMatch(matchId, idx, total) {
+  try { await supabase('PATCH', `matches?id=eq.${matchId}`, { estado: 'descartado' }); } catch(e) {}
+  const ctx = window._matchesActuales;
+  if (ctx && idx + 1 < total) {
+    abrirModalMatchEspecifico(ctx.matches, ctx.byId, idx + 1);
+  } else {
+    document.querySelectorAll('.match-modal-bg').forEach(el => el.remove());
+    showToast('Revisión completa', 'success');
+    setTimeout(() => mostrarBannerMatches(), 800);
+  }
 }
 
 function mostrarReporteExpress() {

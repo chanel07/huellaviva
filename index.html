@@ -585,7 +585,7 @@ body.dark {
       <button class="location-btn" onclick="getLocation()">📍 Usar mi ubicación GPS</button>
     </div>
     <div class="field"><label>Recompensa (opcional)</label><input id="f-recompensa" type="text" placeholder="Ej: $200.000 COP"/></div>
-    <div class="field"><label>Tu teléfono</label><input id="f-telefono" type="tel" placeholder="300 123 4567"/></div>
+    <div class="field"><label>Tu teléfono <span id="tel-feedback" style="font-size:11px;font-weight:600;float:right;"></span></label><input id="f-telefono" type="tel" inputmode="numeric" maxlength="13" placeholder="300 123 4567" oninput="validarTelefono(this)"/></div>
   </div>
   <div style="background:#F3F2FF;border-radius:12px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
     <span style="font-size:16px;">🛡️</span>
@@ -1088,6 +1088,7 @@ function renderCard(r) {
       (r.telefono ? '<a href="https://wa.me/57'+r.telefono.replace(/\D/g,'')+'?text='+encodeURIComponent('🐾 Hola! Vi tu reporte en HuellaViva sobre '+(r.nombre||'tu perro')+(r.raza?' ('+r.raza+')':'')+'. ¿Ya lo encontraste? Quiero ayudarte 💛\n\nhuellavivaapp.com')+'" onclick="event.stopPropagation()" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#ECFDF5;color:#065F46;border:1px solid #6EE7B7;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;">💬 WhatsApp</a>' : '') +
       '<button id="heart-'+r.id+'" onclick="event.stopPropagation();darCorazon(\''+r.id+'\')" style="display:inline-flex;align-items:center;gap:4px;background:transparent;color:'+(JSON.parse(localStorage.getItem('corazones')||'[]').includes(r.id)?'#FF0844':'#9CA3AF')+';border:none;padding:4px 8px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;"><span style="font-size:16px;display:inline-block;animation:heartFloat 1.5s ease-in-out infinite;">❤️</span> <span id="heart-count-'+r.id+'">'+(r.corazones||0)+'</span></button>' +
       '<button onclick="event.stopPropagation();const _r=window._rep&&window._rep[\''+r.id+'\'];if(_r)generarImagenReporte(_r);" style="display:inline-flex;align-items:center;gap:5px;background:#EDE9FE;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📸 Póster</button>' +
+      (r.lat && r.lng ? '<button onclick="event.stopPropagation();verEnMapa(\''+r.id+'\','+r.lat+','+r.lng+')" style="display:inline-flex;align-items:center;gap:5px;background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📍 Ver en mapa</button>' : '') +
       '</div>' +
     '</div></div>';
 }
@@ -1197,6 +1198,12 @@ async function cargarMapa() {
         ? '<div style="width:44px;height:44px;border-radius:50%;border:3px solid '+color+';box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;background:#fff;position:relative;z-index:2;"><img src="'+r.foto_url+'" style="width:100%;height:100%;object-fit:cover;"/></div>'
         : '<div style="background:'+color+';width:44px;height:44px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;z-index:2;">'+emoji+'</div>';
       const animSpeed = r.tipo === 'adopcion' ? '3s' : '2s';
+      // Badge de género (esquina inferior derecha del marker)
+      const generoBadge = r.genero === 'Macho'
+        ? '<div style="position:absolute;bottom:18px;right:8px;background:#3B82F6;color:#fff;width:18px;height:18px;border-radius:50%;border:2px solid #fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:4;box-shadow:0 1px 4px rgba(0,0,0,0.4);">♂</div>'
+        : r.genero === 'Hembra'
+        ? '<div style="position:absolute;bottom:18px;right:8px;background:#EC4899;color:#fff;width:18px;height:18px;border-radius:50%;border:2px solid #fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:4;box-shadow:0 1px 4px rgba(0,0,0,0.4);">♀</div>'
+        : '';
       const iconHtml = '<div style="position:relative;width:70px;height:90px;display:flex;align-items:flex-end;justify-content:center;">'
         + etiqueta
         + '<div style="position:relative;width:70px;height:70px;display:flex;align-items:center;justify-content:center;">'
@@ -1204,6 +1211,7 @@ async function cargarMapa() {
         + '<div style="position:absolute;width:55px;height:55px;border-radius:50%;background:'+color.replace(')', ',0.2)')+';animation:radar '+animSpeed+' ease-out infinite 0.5s;"></div>'
         + '<div style="position:absolute;width:44px;height:44px;border-radius:50%;background:'+color.replace(')', ',0.15)')+';animation:radar '+animSpeed+' ease-out infinite 1s;"></div>'
         + innerHtml
+        + generoBadge
         + '</div></div>';
       const icon = L.divIcon({ className: '', html: iconHtml, iconSize:[70,90], iconAnchor:[35,70] });
       const marker = L.marker([r.lat, r.lng], {icon, zIndexOffset: -100}).on('click', () => verDetalle(r.id));
@@ -1352,6 +1360,17 @@ async function publicarReporte() {
   };
   if (!datos.ubicacion) { showToast('Escribe la ubicación', 'error'); return; }
   if (!datos.telefono) { showToast('📞 Agrega tu teléfono para que puedan contactarte', 'error'); document.getElementById('f-telefono').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  // Validar formato colombiano: 10 dígitos empezando en 3
+  const telLimpio = datos.telefono.replace(/\D/g, '');
+  if (telLimpio.length !== 10 || !telLimpio.startsWith('3')) {
+    showToast('📞 El teléfono debe tener 10 dígitos y empezar con 3 (ej: 300 123 4567)', 'error');
+    const inp = document.getElementById('f-telefono');
+    inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    inp.focus();
+    return;
+  }
+  // Guardar limpio (sin espacios) para que WhatsApp/llamadas funcionen siempre
+  datos.telefono = telLimpio;
   const fotoInput = document.getElementById('f-foto');
   const tiposConFotoObligatoria = ['perdido', 'encontrado', 'adopcion'];
   if (tiposConFotoObligatoria.includes(datos.tipo) && (!fotoInput.files || !fotoInput.files[0])) {
@@ -1853,11 +1872,66 @@ async function publicarReporteExpress() {
   } catch(e) { showToast('Error al publicar. Intenta de nuevo.', 'error'); if (btn) { btn.textContent = '🚨 Publicar ahora'; btn.disabled = false; } }
 }
 
+function verEnMapa(id, lat, lng) {
+  if (navigator.vibrate) navigator.vibrate(15);
+  // Cambiar a pestaña Mapa (showTab ya existe en tu app)
+  if (typeof showTab === 'function') {
+    showTab('mapa');
+  }
+  // Esperar a que el mapa cargue y centrarlo
+  setTimeout(() => {
+    if (window.mapInstance) {
+      try {
+        window.mapInstance.invalidateSize();
+        window.mapInstance.setView([lat, lng], 16, { animate: true });
+        // Si hay markers, intentar abrir el del reporte (encuentra por coords aproximadas)
+        if (window.markersLayer) {
+          window.markersLayer.eachLayer(m => {
+            if (m.getLatLng && Math.abs(m.getLatLng().lat - lat) < 0.0001 && Math.abs(m.getLatLng().lng - lng) < 0.0001) {
+              setTimeout(() => { try { m.fire('click'); } catch(e) {} }, 600);
+            }
+          });
+        }
+      } catch(e) { console.warn('Error al centrar mapa:', e); }
+    }
+  }, 400);
+}
+
+function validarTelefono(input) {
+  // Limpiar y formatear visualmente
+  let val = input.value.replace(/\D/g, '').slice(0, 10);
+  // Formatear como "300 123 4567"
+  if (val.length > 6) input.value = val.slice(0,3) + ' ' + val.slice(3,6) + ' ' + val.slice(6);
+  else if (val.length > 3) input.value = val.slice(0,3) + ' ' + val.slice(3);
+  else input.value = val;
+  // Feedback visual
+  const fb = document.getElementById('tel-feedback');
+  if (!fb) return;
+  if (val.length === 0) {
+    fb.textContent = '';
+    input.style.borderColor = '';
+  } else if (val.length === 10 && val.startsWith('3')) {
+    fb.textContent = '✓ Válido';
+    fb.style.color = 'var(--green, #10B981)';
+    input.style.borderColor = '#10B981';
+  } else if (val.length < 10) {
+    fb.textContent = `${val.length}/10 dígitos`;
+    fb.style.color = '#9CA3AF';
+    input.style.borderColor = '';
+  } else if (!val.startsWith('3')) {
+    fb.textContent = 'Debe empezar con 3';
+    fb.style.color = 'var(--red, #EF4444)';
+    input.style.borderColor = '#EF4444';
+  }
+}
+
 async function darCorazon(id) {
   const corazones = JSON.parse(localStorage.getItem('corazones') || '[]');
   if (corazones.includes(id)) return;
   corazones.push(id);
   localStorage.setItem('corazones', JSON.stringify(corazones));
+  // Vibración háptica suave (premium feel)
+  if (navigator.vibrate) navigator.vibrate(20);
   const btn = document.getElementById('heart-' + id);
   const count = document.getElementById('heart-count-' + id);
   // Calcular nuevo valor sumando 1 al actual de Supabase
@@ -2497,10 +2571,18 @@ function mostrarFormEditar(r, modalDetalle) {
   document.body.appendChild(m);
 }
 </script>
-<div style="text-align:center;padding:12px 20px 80px;font-size:11px;color:#9CA3AF;">
-  <a href="/privacidad.html" style="color:#7C3AED;font-weight:700;text-decoration:none;">Política de privacidad</a>
-  <span style="margin:0 8px;">·</span>
-  <span>© 2026 HuellaViva · Santa Marta</span>
+<div style="text-align:center;padding:18px 20px 90px;font-size:12px;color:#9CA3AF;line-height:1.7;">
+  <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">
+    Huella<span style="color:var(--primary);">Viva</span>
+  </div>
+  <div style="margin-bottom:8px;">
+    Hecha con 💜 en Santa Marta
+  </div>
+  <div>
+    <a href="/privacidad.html" style="color:#7C3AED;font-weight:700;text-decoration:none;">Política de privacidad</a>
+    <span style="margin:0 8px;opacity:0.5;">·</span>
+    <span>© 2026 · Todos los derechos reservados</span>
+  </div>
 </div>
 </body>
 </html>

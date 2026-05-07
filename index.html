@@ -179,31 +179,73 @@
     @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes ripple { 0% { transform: scale(0); opacity: 0.6; } 100% { transform: scale(3); opacity: 0; } }
     @keyframes radar { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
-    /* === Clusters del mapa === */
-    .marker-cluster-custom { background: transparent !important; }
-    .marker-cluster-custom div {
-      width: 50px; height: 50px; border-radius: 50%;
+    /* === Clusters del mapa con radar pulsante === */
+    .marker-cluster-custom { background: transparent !important; border: none !important; }
+    .marker-cluster-custom > div {
+      position: relative;
+      width: 50px; height: 50px;
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 800; font-size: 16px;
+    }
+    /* Ondas de radar (3 ondas escalonadas) */
+    .marker-cluster-custom > div::before,
+    .marker-cluster-custom > div::after,
+    .marker-cluster-custom .radar-wave {
+      content: ''; position: absolute;
+      border-radius: 50%;
+      animation: clusterRadar 2s ease-out infinite;
+      pointer-events: none;
+    }
+    .marker-cluster-custom > div::before {
+      width: 70px; height: 70px;
+      animation-delay: 0s;
+    }
+    .marker-cluster-custom > div::after {
+      width: 70px; height: 70px;
+      animation-delay: 0.7s;
+    }
+    .marker-cluster-custom .radar-wave {
+      width: 70px; height: 70px;
+      animation-delay: 1.4s;
+    }
+    @keyframes clusterRadar {
+      0% { transform: scale(0.5); opacity: 0.7; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    /* Bola central del cluster */
+    .marker-cluster-custom .cluster-ball {
+      position: relative;
+      width: 50px; height: 50px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 18px;
       border: 4px solid #fff;
       box-shadow: 0 4px 14px rgba(0,0,0,0.35);
       font-family: var(--font);
+      z-index: 2;
       animation: clusterPulse 2s ease-in-out infinite;
     }
     @keyframes clusterPulse {
       0%,100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
+      50% { transform: scale(1.08); }
     }
-    .cluster-mixto div { background: linear-gradient(135deg, #EF4444 0%, #7C3AED 50%, #10B981 100%); }
-    .cluster-perdido div { background: linear-gradient(135deg, #EF4444, #DC2626); }
-    .cluster-encontrado div { background: linear-gradient(135deg, #10B981, #059669); }
-    .cluster-adopcion div { background: linear-gradient(135deg, #F59E0B, #D97706); }
-    .marker-cluster-custom div::before {
-      content: ''; position: absolute; inset: -8px;
-      border-radius: 50%; opacity: 0.4;
-      background: inherit; filter: blur(6px); z-index: -1;
-    }
-    /* Quitar estilos default de markercluster */
+    /* Variantes por tipo */
+    .cluster-perdido .cluster-ball,
+    .cluster-perdido > div::before,
+    .cluster-perdido > div::after,
+    .cluster-perdido .radar-wave { background: #EF4444; }
+    .cluster-encontrado .cluster-ball,
+    .cluster-encontrado > div::before,
+    .cluster-encontrado > div::after,
+    .cluster-encontrado .radar-wave { background: #10B981; }
+    .cluster-adopcion .cluster-ball,
+    .cluster-adopcion > div::before,
+    .cluster-adopcion > div::after,
+    .cluster-adopcion .radar-wave { background: #F59E0B; }
+    .cluster-mixto .cluster-ball { background: linear-gradient(135deg, #EF4444 0%, #7C3AED 50%, #10B981 100%); }
+    .cluster-mixto > div::before,
+    .cluster-mixto > div::after,
+    .cluster-mixto .radar-wave { background: #7C3AED; }
+    /* Quitar estilos default del plugin */
     .leaflet-marker-icon.marker-cluster { background: transparent !important; }
     .leaflet-marker-icon.marker-cluster-small,
     .leaflet-marker-icon.marker-cluster-medium,
@@ -1130,7 +1172,7 @@ async function cargarMapa() {
           else claseTipo = 'cluster-encontrado';
         }
         return L.divIcon({
-          html: '<div>' + count + '</div>',
+          html: '<div><span class="radar-wave"></span><div class="cluster-ball">' + count + '</div></div>',
           className: 'marker-cluster-custom ' + claseTipo,
           iconSize: L.point(50, 50)
         });

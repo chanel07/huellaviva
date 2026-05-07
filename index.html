@@ -521,8 +521,8 @@ body.dark {
   <div class="screen-header" style="background:linear-gradient(135deg,#059669,#047857);">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div class="screen-header-title">✅ Perros encontrados</div>
-        <div class="screen-header-sub">Casos resueltos recientemente</div>
+        <div class="screen-header-title">🐾 Avistamientos</div>
+        <div class="screen-header-sub">Perros vistos en la calle buscando familia</div>
       </div>
       <button onclick="toggleBuscador('encontrados')" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;">🔍</button>
     </div>
@@ -569,7 +569,7 @@ body.dark {
     <div class="bnav-label" style="color:var(--primary);font-weight:700;">Reportar</div>
   </div>
   <div class="bnav-item" onclick="showTab('encontrados')" id="bnav-encontrados">
-    <div class="bnav-icon">✅</div>
+    <div class="bnav-icon">🐾</div>
     <div class="bnav-label">Hallados</div>
   </div>
   <div class="bnav-item" onclick="showTab('adopcion')" id="bnav-adopcion">
@@ -994,7 +994,7 @@ function diasPerdido(fechaStr) {
 
 function renderCard(r) {
   const tagClass = r.tipo === 'perdido' ? 'tag-lost' : r.tipo === 'encontrado' ? 'tag-found' : r.tipo === 'adopcion' ? 'tag-adopcion' : 'tag-avist';
-  const label = r.tipo === 'perdido' ? '🚨 Perdido' : r.tipo === 'encontrado' ? '✅ Encontrado' : r.tipo === 'adopcion' ? '🏠 Adopción' : '👁️ Vi un perro perdido';
+  const label = r.tipo === 'perdido' ? '🚨 Perdido' : r.tipo === 'encontrado' ? '🐾 Avistamiento' : r.tipo === 'adopcion' ? '🏠 Adopción' : '👁️ Vi un perro perdido';
   const esNuevo = r.created_at && (Date.now() - new Date(r.created_at).getTime()) < 3 * 60 * 60 * 1000;
   return '<div class="dog-card ' + (r.tipo==='perdido'?'urgent':r.tipo==='adopcion'?'adopcion-card':'') + '">' +
     (esNuevo ? '<div style="position:absolute;top:10px;right:10px;background:#10B981;color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;z-index:2;">🆕 NUEVO</div>' : '') +
@@ -1026,7 +1026,7 @@ async function cargarCards(pantalla) {
     if (!data || data.length === 0) {
       const emptyMsgs = {
         'perdidos': {icon:'🐾', title:'No hay perros perdidos', sub:'¡Buenas noticias! Nadie ha reportado perros perdidos aún'},
-        'encontrados': {icon:'✅', title:'No hay perros encontrados', sub:'Cuando alguien encuentre un perro aparecerá aquí'},
+        'encontrados': {icon:'🐾', title:'Sin avistamientos aún', sub:'Cuando alguien vea un perro buscando familia, aparecerá aquí'},
         'adopcion': {icon:'🏠', title:'No hay perros en adopción', sub:'Pronto habrá perritos buscando hogar'},
         'mapa': {icon:'🗺️', title:'Sin reportes en el mapa', sub:'Sé el primero en reportar un perro'}
       };
@@ -1746,13 +1746,25 @@ async function darCorazon(id) {
   localStorage.setItem('corazones', JSON.stringify(corazones));
   const btn = document.getElementById('heart-' + id);
   const count = document.getElementById('heart-count-' + id);
-  if (btn) { 
+  // Calcular nuevo valor sumando 1 al actual de Supabase
+  const cacheActual = (window._rep && window._rep[id] && window._rep[id].corazones) || 0;
+  const nuevoValor = cacheActual + 1;
+  // Actualizar UI inmediatamente
+  if (btn) {
     btn.style.color = '#FF0844';
     const heartSpan = btn.querySelector('span');
     if (heartSpan) { heartSpan.style.animation = 'heartBeat 0.5s ease both'; setTimeout(() => { heartSpan.style.animation = 'heartFloat 1.5s ease-in-out infinite'; }, 500); }
   }
-  if (count) count.textContent = parseInt(count.textContent || 0) + 1;
-  try { await supabase('PATCH', 'reportes?id=eq.' + id, { corazones: (window._rep && window._rep[id] && window._rep[id].corazones || 0) + 1 }); } catch(e) {}
+  if (count) count.textContent = nuevoValor;
+  // Actualizar cache local para que persista al refrescar la pantalla
+  if (window._rep && window._rep[id]) window._rep[id].corazones = nuevoValor;
+  // Persistir en Supabase
+  try {
+    await supabase('PATCH', 'reportes?id=eq.' + id, { corazones: nuevoValor });
+  } catch(e) {
+    console.warn('No se pudo guardar el corazón en Supabase:', e);
+    // Si falla, igualmente queda guardado localmente para no frustrar al usuario
+  }
 }
 
 function mostrarHuellas() {

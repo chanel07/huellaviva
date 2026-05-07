@@ -1153,13 +1153,14 @@ async function cargarMapa() {
   L.marker([userLat, userLng], {icon: myIcon}).addTo(mapInstance).bindPopup('Tu ubicación');
     markersLayer = L.markerClusterGroup({
       // Configuración optimizada para HuellaViva
-      maxClusterRadius: 80,           // ↑ Radio más amplio para que se agrupen mejor
+      maxClusterRadius: 65,           // Radio de agrupación moderado
       spiderfyOnMaxZoom: true,        // Al máximo zoom, separa puntos exactamente iguales
+      spiderfyDistanceMultiplier: 2.5,// ↑ Spiderfy más amplio (los puntos se separan más)
       showCoverageOnHover: false,     // No muestra el polígono al hover
       zoomToBoundsOnClick: true,      // Click hace zoom para ver los puntos del cluster
       animate: true,
       animateAddingMarkers: true,
-      disableClusteringAtZoom: 17,    // A partir de zoom 17 muestra puntos individuales
+      disableClusteringAtZoom: 16,    // ↓ A partir de zoom 16 muestra puntos individuales (antes 17)
       iconCreateFunction: function(cluster) {
         const markers = cluster.getAllChildMarkers();
         const count = markers.length;
@@ -1186,6 +1187,28 @@ async function cargarMapa() {
   }
   try {
     const data = await supabase('GET', 'reportes?activo=eq.true');
+    // 🎯 OFFSET AUTOMÁTICO: separar reportes con coordenadas idénticas
+    // Para que no queden todos amontonados en el mismo punto
+    const coordsMap = {};
+    data.forEach(r => {
+      if (!r.lat || !r.lng) return;
+      // Redondear a 5 decimales para detectar duplicados (precisión ~1.1 metros)
+      const key = r.lat.toFixed(5) + ',' + r.lng.toFixed(5);
+      if (!coordsMap[key]) coordsMap[key] = [];
+      coordsMap[key].push(r);
+    });
+    // Si hay más de 1 en la misma coord, distribuirlos en círculo
+    Object.values(coordsMap).forEach(grupo => {
+      if (grupo.length <= 1) return;
+      // Radio de separación: ~10 metros = 0.0001 grados aprox
+      const radio = 0.0001;
+      grupo.forEach((r, i) => {
+        const angulo = (2 * Math.PI * i) / grupo.length;
+        // Pequeño desplazamiento sin alterar la coordenada original en BD
+        r._latOffset = r.lat + radio * Math.cos(angulo);
+        r._lngOffset = r.lng + radio * Math.sin(angulo);
+      });
+    });
     data.forEach(r => {
       if (!r.lat || !r.lng) return;
       const esAproximada = r.ubicacion_aproximada;
@@ -1214,7 +1237,10 @@ async function cargarMapa() {
         + generoBadge
         + '</div></div>';
       const icon = L.divIcon({ className: '', html: iconHtml, iconSize:[70,90], iconAnchor:[35,70] });
-      const marker = L.marker([r.lat, r.lng], {icon, zIndexOffset: -100}).on('click', () => verDetalle(r.id));
+      // Usar coordenadas con offset si hay duplicados, si no las originales
+      const markerLat = r._latOffset || r.lat;
+      const markerLng = r._lngOffset || r.lng;
+      const marker = L.marker([markerLat, markerLng], {icon, zIndexOffset: -100}).on('click', () => verDetalle(r.id));
       marker._tipo = r.tipo; // Para que el cluster sepa colorearse
       markersLayer.addLayer(marker);
     });

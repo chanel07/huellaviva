@@ -491,6 +491,15 @@ body.dark {
         <button onclick="mostrarReporteExpress()" style="width:60px;height:60px;background:#FF6B00;border:none;border-radius:50%;font-size:26px;cursor:pointer;animation:pulse-express 2s infinite;box-shadow:0 4px 20px rgba(255,107,0,0.5);position:relative;z-index:1;">🚨</button>
       </div>
     </div>
+    <!-- BOTÓN BUSCAR SIMILAR CON IA (cámara + Gemini Vision) -->
+    <div style="position:absolute;bottom:16px;left:16px;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:999;">
+      <div style="background:#fff;border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:#7C3AED;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.15);">🔍 Buscar con IA</div>
+      <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,0.5);animation:radar-express 2s ease-out infinite;"></div>
+        <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(124,58,237,0.3);animation:radar-express 2s ease-out infinite 0.6s;"></div>
+        <button onclick="iniciarBusquedaIA()" style="width:60px;height:60px;background:linear-gradient(135deg,#7C3AED,#5B21B6);border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,0.5);position:relative;z-index:1;color:#fff;">📷</button>
+      </div>
+    </div>
   </div>
   <div class="map-legend">
     <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div>Perdido</div>
@@ -1757,6 +1766,154 @@ async function descartarMatch(matchId, idx, total) {
     showToast('Revisión completa', 'success');
     setTimeout(() => mostrarBannerMatches(), 800);
   }
+}
+
+// ============================================
+// === BUSCAR CON IA (cámara + Gemini Vision) ===
+// Reutiliza /api/match-ia (el mismo endpoint del sistema automático).
+// No modifica nada del flujo existente — es una pantalla aparte.
+// ============================================
+async function iniciarBusquedaIA() {
+  if (navigator.vibrate) navigator.vibrate(20);
+  // Crear input de cámara nativa (oculto)
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // Cámara trasera por defecto
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    await procesarBusquedaIA(file);
+  });
+  input.click();
+}
+
+async function procesarBusquedaIA(file) {
+  // 1) Mostrar modal de carga
+  const modal = document.createElement('div');
+  modal.id = 'busqueda-ia-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);';
+  modal.innerHTML = `
+    <div style="background:var(--card,#fff);border-radius:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;text-align:center;animation:fadeInUp 0.4s ease;">
+      <div style="font-size:18px;font-weight:800;color:var(--primary);margin-bottom:6px;">🔍 Buscando coincidencias</div>
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:20px;">La IA está comparando esta foto con todos los perros perdidos activos...</div>
+      <div style="position:relative;width:80px;height:80px;margin:0 auto 20px;">
+        <div style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(124,58,237,0.3);border-top-color:#7C3AED;animation:spin 1s linear infinite;"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;">🤖</div>
+      </div>
+      <div id="busqueda-ia-status" style="font-size:12px;color:var(--text-light);">Subiendo foto...</div>
+    </div>`;
+  document.body.appendChild(modal);
+  try {
+    // 2) Subir foto temporal a Cloudinary
+    document.getElementById('busqueda-ia-status').textContent = 'Subiendo foto...';
+    const fotoUrl = await subirFoto(file);
+    // 3) Obtener perros perdidos activos
+    document.getElementById('busqueda-ia-status').textContent = 'Buscando perdidos activos...';
+    const perdidos = await supabase('GET', 'reportes?activo=eq.true&tipo=eq.perdido');
+    if (!perdidos || perdidos.length === 0) {
+      mostrarResultadoBusquedaIA(fotoUrl, null, 'No hay perros perdidos activos en este momento');
+      return;
+    }
+    // Limitar a los más recientes para no saturar Gemini
+    const candidatos = perdidos.slice(0, 12);
+    // 4) Llamar al endpoint match-ia (el mismo que ya funciona)
+    document.getElementById('busqueda-ia-status').textContent = 'Comparando con IA...';
+    const matchResp = await fetch('/api/match-ia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        encontrado: {
+          id: 'busqueda-temporal-' + Date.now(),
+          foto_url: fotoUrl,
+          raza: '', color: '', tamano: '', genero: '',
+          descripcion: 'Búsqueda en vivo desde la calle',
+          ubicacion: 'Santa Marta'
+        },
+        perdidos: candidatos.map(p => ({
+          id: p.id, foto_url: p.foto_url, nombre: p.nombre, raza: p.raza,
+          color: p.color, tamano: p.tamano, genero: p.genero,
+          descripcion: p.descripcion, ubicacion: p.ubicacion
+        }))
+      })
+    });
+    if (!matchResp.ok) throw new Error('match-ia fallo');
+    const { matches } = await matchResp.json();
+    // 5) Mostrar mejor coincidencia si supera 60% (un poco más permisivo en búsqueda manual)
+    const mejor = (matches || [])
+      .filter(m => m.score >= 60)
+      .sort((a, b) => b.score - a.score)[0];
+    if (mejor) {
+      const reportePerdido = candidatos.find(p => p.id === mejor.perdido_id);
+      mostrarResultadoBusquedaIA(fotoUrl, mejor, null, reportePerdido);
+    } else {
+      mostrarResultadoBusquedaIA(fotoUrl, null, 'No encontramos coincidencias con perros perdidos activos');
+    }
+  } catch (err) {
+    console.error('Error en búsqueda IA:', err);
+    mostrarResultadoBusquedaIA(null, null, 'Error al procesar. Intenta de nuevo en un momento.');
+  }
+}
+
+function mostrarResultadoBusquedaIA(fotoUrl, match, mensaje, reportePerdido) {
+  const modal = document.getElementById('busqueda-ia-modal');
+  if (!modal) return;
+  if (match && reportePerdido) {
+    // HAY MATCH
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+    const wsp = reportePerdido.telefono ? 'https://wa.me/57' + reportePerdido.telefono.replace(/\D/g,'') + '?text=' + encodeURIComponent('🐾 Hola! Vi un perro que se parece mucho a ' + (reportePerdido.nombre || 'tu mascota') + ' usando HuellaVivaApp. ¿Quieres que te cuente más?\n\nhuellavivaapp.com') : '';
+    const tel = reportePerdido.telefono ? 'tel:' + reportePerdido.telefono : '';
+    modal.innerHTML = `
+      <div style="background:var(--card,#fff);border-radius:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;animation:fadeInUp 0.4s ease;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:48px;margin-bottom:6px;">🎯</div>
+          <div style="font-size:18px;font-weight:800;color:#7C3AED;">¡Posible coincidencia!</div>
+          <div style="background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;display:inline-block;padding:6px 16px;border-radius:20px;font-weight:800;font-size:14px;margin-top:8px;">${match.score}% de similitud</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:var(--text-light);font-weight:700;margin-bottom:4px;">TU FOTO</div>
+            <img src="${fotoUrl}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:2px solid #7C3AED;">
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:#EF4444;font-weight:700;margin-bottom:4px;">PERDIDO</div>
+            <img src="${reportePerdido.foto_url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:2px solid #EF4444;">
+          </div>
+        </div>
+        <div style="background:rgba(124,58,237,0.1);border-left:3px solid #7C3AED;padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;line-height:1.5;">
+          <div style="font-weight:800;color:#7C3AED;margin-bottom:6px;">${reportePerdido.nombre || 'Perro perdido'}</div>
+          <div style="color:var(--text);">${[reportePerdido.raza, reportePerdido.color, reportePerdido.tamano].filter(Boolean).join(' · ')}</div>
+          <div style="color:var(--text-light);margin-top:4px;font-size:12px;">📍 ${reportePerdido.ubicacion || 'Santa Marta'}</div>
+          ${match.razones ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(124,58,237,0.2);font-size:12px;font-style:italic;">💡 ' + match.razones + '</div>' : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${wsp ? '<a href="' + wsp + '" target="_blank" style="flex:1;background:#10B981;color:#fff;text-decoration:none;padding:12px;border-radius:12px;font-weight:700;text-align:center;font-size:13px;">💬 Avisar por WhatsApp</a>' : ''}
+          ${tel ? '<a href="' + tel + '" style="flex:1;background:#3B82F6;color:#fff;text-decoration:none;padding:12px;border-radius:12px;font-weight:700;text-align:center;font-size:13px;">📞 Llamar</a>' : ''}
+        </div>
+        <button onclick="cerrarBusquedaIA()" style="width:100%;margin-top:10px;background:transparent;color:var(--text-light);border:1px solid var(--border,#e5e5e5);border-radius:12px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;">Cerrar</button>
+      </div>`;
+  } else {
+    // NO HAY MATCH
+    modal.innerHTML = `
+      <div style="background:var(--card,#fff);border-radius:20px;max-width:420px;width:100%;padding:24px;text-align:center;animation:fadeInUp 0.4s ease;">
+        <div style="font-size:48px;margin-bottom:10px;">🔍</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Sin coincidencias</div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:20px;line-height:1.5;">${mensaje || 'No encontramos perros perdidos similares en este momento. Si crees que está perdido, repórtalo como avistamiento para que el dueño lo pueda ver.'}</div>
+        ${fotoUrl ? '<img src="' + fotoUrl + '" style="width:120px;height:120px;object-fit:cover;border-radius:12px;margin-bottom:16px;">' : ''}
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="cerrarBusquedaIA();setTimeout(()=>{if(typeof mostrarReporteExpress==='function')mostrarReporteExpress();},300)" style="background:#FF6B00;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;font-size:13px;">📝 Reportar este perro</button>
+          <button onclick="cerrarBusquedaIA()" style="background:transparent;color:var(--text-light);border:1px solid var(--border,#e5e5e5);border-radius:12px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;">Cerrar</button>
+        </div>
+      </div>`;
+  }
+}
+
+function cerrarBusquedaIA() {
+  const modal = document.getElementById('busqueda-ia-modal');
+  if (modal) document.body.removeChild(modal);
 }
 
 function mostrarReporteExpress() {

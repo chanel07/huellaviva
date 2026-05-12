@@ -1328,6 +1328,27 @@ const BARRIOS_SM = [
   {n:'Nueva Venecia',lat:11.2412,lng:-74.1945},{n:'Villa Marbella',lat:11.2267,lng:-74.2156},
   {n:'Perehuétano',lat:11.2223,lng:-74.2123},{n:'Postobón',lat:11.2245,lng:-74.2145},
   {n:'Alcázares',lat:11.2256,lng:-74.2167},{n:'El Olivo',lat:11.2534,lng:-74.2256},
+  // Zonas adicionales y corregimientos cercanos
+  {n:'Pozos Colorados',lat:11.1612,lng:-74.2289},{n:'Bello Horizonte',lat:11.1745,lng:-74.2256},
+  {n:'Salguero',lat:11.1834,lng:-74.2178},{n:'Aeropuerto Simón Bolívar',lat:11.1196,lng:-74.2305},
+  {n:'Ciudad Equidad',lat:11.2089,lng:-74.1834},{n:'Yucal',lat:11.2267,lng:-74.1734},
+  {n:'Garagoa',lat:11.2189,lng:-74.1789},{n:'Plan de la Sierra',lat:11.2156,lng:-74.1645},
+  {n:'Curinca',lat:11.2334,lng:-74.1567},{n:'Calabazo',lat:11.2812,lng:-73.9456},
+  {n:'Guachaca',lat:11.2812,lng:-73.7867},{n:'Buritaca',lat:11.2467,lng:-73.7634},
+  {n:'Palomino',lat:11.2467,lng:-73.5712},{n:'Don Diego',lat:11.2734,lng:-73.7212},
+  {n:'Quebrada Valencia',lat:11.2745,lng:-73.8534},{n:'Los Naranjos (Tayrona)',lat:11.3267,lng:-74.0312},
+  // Ciénaga y alrededores
+  {n:'Ciénaga',lat:11.0078,lng:-74.2456},{n:'Centro Ciénaga',lat:11.0085,lng:-74.2456},
+  {n:'Pueblo Viejo',lat:10.9889,lng:-74.2823},{n:'Sevillano',lat:10.9234,lng:-74.2756},
+  // Norte y otros sectores Santa Marta
+  {n:'Líbano',lat:11.2456,lng:-74.2245},{n:'Manzanares',lat:11.2401,lng:-74.2189},
+  {n:'Concepción',lat:11.2378,lng:-74.2123},{n:'Goenaga',lat:11.2456,lng:-74.2189},
+  {n:'Ciudadela 29 de Julio',lat:11.2589,lng:-74.2178},{n:'Las Acacias Norte',lat:11.2645,lng:-74.2256},
+  {n:'El Pozón',lat:11.2389,lng:-74.1845},{n:'La Concepción',lat:11.2378,lng:-74.2089},
+  {n:'María Auxiliadora',lat:11.2412,lng:-74.2156},{n:'San Pablo',lat:11.2434,lng:-74.2189},
+  {n:'Las Delicias',lat:11.2456,lng:-74.2212},{n:'Villa Concha',lat:11.2378,lng:-74.2289},
+  {n:'Bahía Concha',lat:11.3245,lng:-74.1567},{n:'Neguanje',lat:11.3478,lng:-74.0934},
+  {n:'Rincón Guapo',lat:11.2434,lng:-74.2034},{n:'Los Laureles',lat:11.2367,lng:-74.2078},
 ];
 
 let ubicacionTimer = null;
@@ -1347,11 +1368,23 @@ async function buscarUbicacion(query) {
   }
   ubicacionTimer = setTimeout(async () => {
     try {
-      const res = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + ' Santa Marta Colombia') + '&format=json&limit=5&countrycodes=co', { headers: { 'Accept-Language': 'es', 'User-Agent': 'HuellaViva/1.0' } });
+      // Bounding box que cubre Santa Marta + Ciénaga + Taganga + Minca + Bonda + barrios + corregimientos cercanos
+      // Formato Nominatim: viewbox=west,north,east,south  +  bounded=1 (limita estrictamente)
+      // Coordenadas: ~50km alrededor de Santa Marta
+      const VIEWBOX = '-74.50,11.40,-73.80,10.70'; // oeste,norte,este,sur
+      const res = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + ' Santa Marta Colombia') + '&format=json&limit=8&countrycodes=co&viewbox=' + VIEWBOX + '&bounded=1', { headers: { 'Accept-Language': 'es', 'User-Agent': 'HuellaViva/1.0' } });
       const data = await res.json();
-      if (!data.length) { sugerencias.style.display = 'none'; return; }
+      // Filtro extra de seguridad: solo resultados dentro del radio de 50km desde Santa Marta centro
+      const SM_LAT = 11.2408, SM_LNG = -74.2110;
+      const filtrados = data.filter(d => {
+        const dLat = parseFloat(d.lat) - SM_LAT;
+        const dLng = parseFloat(d.lon) - SM_LNG;
+        const distKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+        return distKm <= 60; // 60km radio máximo
+      });
+      if (!filtrados.length) { sugerencias.style.display = 'none'; return; }
       sugerencias.style.display = 'block';
-      sugerencias.innerHTML = data.map(d => {
+      sugerencias.innerHTML = filtrados.slice(0, 5).map(d => {
         const nombre = d.display_name.split(',').slice(0,3).join(',');
         return `<div onclick="seleccionarUbicacion('${nombre.replace(/'/g,"\'")}',${d.lat},${d.lon})" style="padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #F3F4F6;color:#1E1B4B;font-weight:500;" onmouseover="this.style.background='#F8F7FF'" onmouseout="this.style.background='#fff'">📍 ${nombre}</div>`;
       }).join('');

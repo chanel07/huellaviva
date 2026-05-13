@@ -1096,7 +1096,7 @@ function renderCard(r) {
   const esNuevo = r.created_at && (Date.now() - new Date(r.created_at).getTime()) < 3 * 60 * 60 * 1000;
   return '<div class="dog-card ' + (r.tipo==='perdido'?'urgent':r.tipo==='adopcion'?'adopcion-card':'') + '">' +
     (esNuevo ? '<div style="position:absolute;top:10px;right:10px;background:#10B981;color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;z-index:2;">🆕 NUEVO</div>' : '') +
-    '<div class="dog-avatar">' + (r.foto_url ? '<img src="'+r.foto_url+'" loading="lazy" decoding="async" onclick="verFoto(\''+r.foto_url+'\')" onload="this.style.opacity=1" style="cursor:pointer;opacity:0;transition:opacity 0.4s ease;background:linear-gradient(135deg,var(--surface),var(--surface2));"/>' : avatarPerro(r)) + '</div>' +
+    '<div class="dog-avatar">' + (r.foto_url ? '<img src="'+r.foto_url+'" onclick="verFoto(\''+r.foto_url+'\')" style="cursor:pointer"/>' : avatarPerro(r)) + '</div>' +
     '<div class="dog-info">' +
       '<div class="dog-name">' + (r.nombre||'Sin nombre') + '</div>' +
       '<div class="dog-meta">' + [r.raza,r.color,r.tamano,(r.genero&&r.genero!==''?r.genero:'')].filter(Boolean).join(' · ') + '</div>' +

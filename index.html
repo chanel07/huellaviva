@@ -686,7 +686,6 @@ const ANTHROPIC_KEY = '';
 // Gemini key is stored securely in Vercel environment variables
 
 let mapInstance = null;
-let mapaUltimaCarga = null;
 let userLat = 11.2408, userLng = -74.2121, ubicacionReal = false;
 
 function previewFoto(input) {
@@ -1204,15 +1203,10 @@ async function cargarMapa() {
     });
     mapInstance.addLayer(markersLayer);
   } else {
-    // Caché: si los datos se cargaron hace menos de 30 segundos, no volver a hacer fetch
-    if (mapaUltimaCarga && (Date.now() - mapaUltimaCarga) < 30000) {
-      return;
-    }
     markersLayer.clearLayers();
   }
   try {
     const data = await supabase('GET', 'reportes?activo=eq.true');
-    mapaUltimaCarga = Date.now();
     // 🎯 OFFSET AUTOMÁTICO: separar reportes con coordenadas idénticas
     // Para que no queden todos amontonados en el mismo punto
     const coordsMap = {};
@@ -1549,7 +1543,6 @@ async function publicarReporte() {
     const aiStatus = document.getElementById('ai-status');
     if (aiStatus) { aiStatus.style.display = 'none'; aiStatus.textContent = ''; }
     ubicacionReal = false; userLat = 0; userLng = 0;
-    mapaUltimaCarga = null; // Invalidar caché del mapa para que recargue con el nuevo reporte
     setTimeout(() => showTab(datos.tipo === 'adopcion' ? 'adopcion' : (datos.tipo === 'encontrado' || datos.tipo === 'avistamiento') ? 'encontrados' : 'perdidos'), 1500);
   } catch(e) { showToast('Error al publicar', 'error'); }
   btn.disabled = false;

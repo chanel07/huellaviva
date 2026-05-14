@@ -2291,6 +2291,48 @@ function lanzarConfetti() {
   }
 }
 
+const WHATSAPP_HUELLAVIVA = '573042990199';
+
+function mostrarInvitacionTestimonio(reporte) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:100000;padding:24px;animation:fadeIn 0.3s ease;';
+
+  const nombrePerro = (reporte && reporte.nombre && reporte.nombre.toLowerCase() !== 'nn') ? reporte.nombre : 'tu perro';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:24px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+  card.innerHTML = `
+    <div style="font-size:52px;margin-bottom:8px;">🎉</div>
+    <h2 style="font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">¡${nombrePerro} está en casa!</h2>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:20px;line-height:1.5;font-family:Plus Jakarta Sans,sans-serif;">Nos alegra muchísimo. ¿Nos compartes tu historia? Ayuda a que más familias confíen en HuellaViva 💜</p>
+    <button id="btn-contar-historia" style="width:100%;background:#25D366;color:#fff;padding:14px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:10px;box-shadow:0 4px 12px rgba(37,211,102,0.3);">💬 Contar mi historia por WhatsApp</button>
+    <button id="btn-ahora-no" style="width:100%;background:transparent;color:#9CA3AF;padding:10px;border-radius:12px;font-weight:600;font-size:14px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Ahora no, gracias</button>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const cerrar = () => {
+    document.body.removeChild(overlay);
+    setTimeout(() => location.reload(), 300);
+  };
+
+  card.querySelector('#btn-ahora-no').onclick = cerrar;
+  overlay.onclick = (e) => { if (e.target === overlay) cerrar(); };
+
+  card.querySelector('#btn-contar-historia').onclick = () => {
+    const mensaje = '¡Hola HuellaViva! 🎉 Encontré a mi perro y quiero contar mi historia:\n\n' +
+      '🐕 Nombre del perro: ' + nombrePerro + '\n' +
+      '⏱️ Tiempo perdido: \n' +
+      '📍 Dónde apareció: \n' +
+      '💬 Cómo me ayudó HuellaViva: \n\n' +
+      '(También puedo enviar una foto del reencuentro)';
+    const url = 'https://wa.me/' + WHATSAPP_HUELLAVIVA + '?text=' + encodeURIComponent(mensaje);
+    window.open(url, '_blank');
+    cerrar();
+  };
+}
+
 function addCardRipple(e, card) {
   const rect = card.getBoundingClientRect();
   const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
@@ -2660,8 +2702,7 @@ function verDetalle(id) {
         localStorage.setItem('mis_reportes', JSON.stringify(nuevos));
         document.body.removeChild(m);
         lanzarConfetti();
-        showToast('¡Qué alegría! Reporte eliminado 🎉', 'success');
-        setTimeout(() => location.reload(), 1500);
+        mostrarInvitacionTestimonio(r);
       } catch(e) { showToast('Error al cerrar reporte', 'error'); }
     };
     card.appendChild(found);

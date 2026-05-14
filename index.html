@@ -2713,6 +2713,25 @@ function verDetalle(id) {
     edit.textContent = '✏️ Editar reporte';
     edit.onclick = () => mostrarFormEditar(r, m);
     card.appendChild(edit);
+  } else if (r.tipo === 'perdido' || r.tipo === 'encontrado' || r.tipo === 'avistamiento') {
+    // Para quien NO publicó el reporte: botón para avisar que apareció (vía WhatsApp, sin cerrar nada)
+    const avisar = document.createElement('button');
+    avisar.style.cssText = 'width:100%;background:#25D366;color:#fff;padding:13px;border-radius:14px;font-weight:700;font-size:14px;margin-bottom:8px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;transition:all 0.15s;box-shadow:0 4px 12px rgba(37,211,102,0.3);';
+    avisar.textContent = '✅ Avisar que apareció';
+    avisar.addEventListener('touchstart',()=>{avisar.style.transform='scale(0.97)';});
+    avisar.addEventListener('touchend',()=>{avisar.style.transform='scale(1)';});
+    avisar.onclick = () => {
+      const nombrePerro = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'el perro';
+      const mensaje = '¡Hola HuellaViva! 🎉\n\n' +
+        'Quiero avisar que ' + nombrePerro + ' ya apareció. Pueden cerrar el reporte.\n\n' +
+        '🐕 Nombre: ' + (r.nombre || 'Sin nombre') + '\n' +
+        '📍 Zona: ' + (r.ubicacion || 'No especificada') + '\n' +
+        '🆔 Reporte: ' + r.id + '\n\n' +
+        '(Si soy el dueño, con gusto les cuento mi historia)';
+      const url = 'https://wa.me/' + WHATSAPP_HUELLAVIVA + '?text=' + encodeURIComponent(mensaje);
+      window.open(url, '_blank');
+    };
+    card.appendChild(avisar);
   }
   if (!misReportes.includes(r.id) && r.telefono) {
     const known = document.createElement('div');

@@ -875,13 +875,20 @@ async function cargarInicio() {
   cargarClima();
   mostrarBannerMatches().catch(()=>{});
   try {
+    // Consulta 1: TODOS los reportes activos solo para contadores (count exact)
+    const todos = await supabase('GET', 'reportes?activo=eq.true&select=tipo');
+    animarContador('si-total', todos.length);
+    animarContador('si-perdidos', todos.filter(r => r.tipo === 'perdido').length);
+    animarContador('si-encontrados', todos.filter(r => r.tipo === 'encontrado' || r.tipo === 'avistamiento').length);
+
+    // Consulta 2: Los últimos 20 para mostrar las cards
     const data = await supabase('GET', 'reportes?activo=eq.true&order=created_at.desc&limit=20');
     const el = document.getElementById('cards-inicio');
     if (!data || data.length === 0) {
       el.innerHTML = '<div class="empty"><div class="empty-icon">🐾</div><div class="empty-title">Sin reportes aún</div><div class="empty-sub">Sé el primero en reportar</div></div>';
     } else {
       window._rep = window._rep || {}; data.forEach(x => { window._rep[x.id] = x; });
-      const perdidos = data.filter(r => r.tipo === 'perdido').length;
+      const perdidos = todos.filter(r => r.tipo === 'perdido').length;
       const btnCount = document.getElementById('btn-mapa-count');
       if (btnCount) btnCount.textContent = perdidos + ' perro' + (perdidos !== 1 ? 's' : '') + ' activo' + (perdidos !== 1 ? 's' : '');
       const ultimoEl = document.getElementById('ultimo-reporte');
@@ -890,9 +897,6 @@ async function cargarInicio() {
       }
       el.innerHTML = data.map(renderCard).join('');
       el.querySelectorAll('.dog-card').forEach((c,i) => { if(data[i]){ c.addEventListener('click', () => verDetalle(data[i].id)); c.style.opacity='0'; c.style.animation=`cardEntrance3d 0.5s ease forwards`; c.style.animationDelay=`${i*0.08}s`; }});
-      animarContador('si-total', data.length);
-      animarContador('si-perdidos', data.filter(r => r.tipo === 'perdido').length);
-      animarContador('si-encontrados', data.filter(r => r.tipo === 'encontrado' || r.tipo === 'avistamiento').length);
     }
   } catch(e) { showToast('Error cargando datos', 'error'); }
 }
@@ -1135,19 +1139,23 @@ async function cargarCards(pantalla) {
     }
     window._rep=window._rep||{}; data.forEach(x=>{window._rep[x.id]=x;}); if(pantalla==='perdidos'||pantalla==='encontrados'||pantalla==='adopcion') reportesCache[pantalla]=data; el.innerHTML = data.map(renderCard).join(''); el.querySelectorAll('.dog-card').forEach((c,i)=>{if(data[i]){c.classList.add('ripple-container'); c.addEventListener('click',(e)=>{addCardRipple(e,c);setTimeout(()=>verDetalle(data[i].id),150);}); c.style.opacity='0'; c.style.animation=`cardEntrance3d 0.5s ease forwards`; c.style.animationDelay=`${i*0.08}s`;}});
     if (document.getElementById('s-total')) {
-      document.getElementById('s-total').textContent = data.length;
-      document.getElementById('s-perdidos').textContent = data.filter(r=>r.tipo==='perdido').length;
-      document.getElementById('s-encontrados').textContent = data.filter(r=>r.tipo==='encontrado' || r.tipo==='avistamiento').length;
-      const nPerdidos = data.filter(r=>r.tipo==='perdido').length;
-    const badgeEl = document.getElementById('contador');
-    const prevText = badgeEl.textContent;
-    badgeEl.textContent = '🐾 ' + nPerdidos;
-    if (prevText !== badgeEl.textContent) {
-      badgeEl.classList.remove('bump');
-      void badgeEl.offsetWidth;
-      badgeEl.classList.add('bump');
-      setTimeout(() => badgeEl.classList.remove('bump'), 400);
-    }
+      // Para los contadores, traer TODOS los reportes activos (no solo los filtrados)
+      try {
+        const todos = await supabase('GET', 'reportes?activo=eq.true&select=tipo');
+        document.getElementById('s-total').textContent = todos.length;
+        document.getElementById('s-perdidos').textContent = todos.filter(r=>r.tipo==='perdido').length;
+        document.getElementById('s-encontrados').textContent = todos.filter(r=>r.tipo==='encontrado' || r.tipo==='avistamiento').length;
+        const nPerdidos = todos.filter(r=>r.tipo==='perdido').length;
+      const badgeEl = document.getElementById('contador');
+      const prevText = badgeEl.textContent;
+      badgeEl.textContent = '🐾 ' + nPerdidos;
+      if (prevText !== badgeEl.textContent) {
+        badgeEl.classList.remove('bump');
+        void badgeEl.offsetWidth;
+        badgeEl.classList.add('bump');
+        setTimeout(() => badgeEl.classList.remove('bump'), 400);
+      }
+      } catch(e) {}
     }
   } catch(e) { showToast('Error cargando datos', 'error'); }
 }

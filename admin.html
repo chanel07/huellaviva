@@ -150,6 +150,7 @@
       <div class="stat-card"><div class="stat-num" id="s-adopcion" style="color:#F59E0B">-</div><div class="stat-label">Adopción</div></div>
       <div class="stat-card"><div class="stat-num" id="s-inactivos" style="color:var(--muted)">-</div><div class="stat-label">Resueltos</div></div>
       <div class="stat-card" style="cursor:pointer;border-color:#7C3AED44" onclick="filtrarMatches()"><div class="stat-num" id="s-matches" style="color:#7C3AED">-</div><div class="stat-label">🤖 Matches IA</div></div>
+      <div class="stat-card" style="border-color:#EC489944"><div class="stat-num" id="s-mascotas" style="color:#EC4899">-</div><div class="stat-label">🐕 Mi Mascota</div></div>
     </div>
 
     <div class="section-title">Todos los reportes</div>
@@ -249,6 +250,23 @@ function actualizarStats() {
   document.getElementById('s-encontrados').textContent = todosReportes.filter(r => r.tipo === 'encontrado' && r.activo).length;
   document.getElementById('s-adopcion').textContent = todosReportes.filter(r => r.tipo === 'adopcion' && r.activo).length;
   document.getElementById('s-inactivos').textContent = todosReportes.filter(r => !r.activo).length;
+  cargarContadorMascotas();
+}
+
+async function cargarContadorMascotas() {
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/estadisticas?nombre=eq.mascotas_registradas&select=valor', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    if (!res.ok) {
+      document.getElementById('s-mascotas').textContent = '0';
+      return;
+    }
+    const data = await res.json();
+    document.getElementById('s-mascotas').textContent = (data && data[0]) ? data[0].valor : '0';
+  } catch(e) {
+    document.getElementById('s-mascotas').textContent = '-';
+  }
 }
 
 function filtrar(tipo, btn) {

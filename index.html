@@ -2878,14 +2878,17 @@ function abrirFormularioMascota(idx = null) {
     };
 
     const mascotas = getMisMascotas();
+    const eraNueva = !editando;
     if (editando) {
       mascotas[idx] = nuevaMascota;
     } else {
       mascotas.push(nuevaMascota);
-      // Contador anónimo: incrementar SOLO si es mascota nueva
-      sumarContadorAnonimo().catch(() => {});
     }
     guardarMisMascotas(mascotas);
+    // Contador anónimo: solo si es mascota nueva (después de guardar)
+    if (eraNueva) {
+      sumarContadorAnonimo().catch(() => {});
+    }
     cerrar();
     renderMisMascotas();
     actualizarEstadoBotonMiMascota();

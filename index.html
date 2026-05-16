@@ -53,6 +53,7 @@
     .logo { display: flex; align-items: center; gap: 8px; }
     .logo-icon { width: 34px; height: 34px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; animation: heartbeat 5s ease-in-out infinite; }
     @keyframes heartbeat { 0%,90%,100% { transform: scale(1); } 92% { transform: scale(1.18); } 96% { transform: scale(1.05); } 98% { transform: scale(1.15); } }
+    @keyframes perritoLatido { 0%, 100% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.15) rotate(-5deg); } 50% { transform: scale(1.1) rotate(0deg); } 75% { transform: scale(1.15) rotate(5deg); } }
     .logo-text { font-weight: 800; font-size: 18px; color: var(--text); letter-spacing: -0.5px; }
     .logo-text span { color: var(--primary); }
     .nav-badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; transition: transform 0.3s ease; }
@@ -449,9 +450,10 @@ body.dark {
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(55,48,163,0.35),rgba(67,56,202,0.25));z-index:1;pointer-events:none;"></div>
       <div style="position:relative;z-index:2;padding:18px 8px;color:#fff;text-align:center;">🗺️<br>Ver mapa<br><span style="font-size:10px;opacity:0.9;" id="btn-mapa-count">y casos</span></div>
     </div>
-    <button onclick="showTab('adopcion')" style="background:#F59E0B;color:#fff;border:none;border-radius:var(--radius);padding:18px 8px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(245,158,11,0.45);transition:transform 0.2s;animation:heartbeat 4s ease-in-out infinite;position:relative;overflow:hidden;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
-      <div style="position:absolute;bottom:-10px;right:-10px;width:60px;height:60px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>
-      <div style="position:relative;z-index:1;">🏠<br>Adopción<br><span style="font-size:10px;opacity:0.9;">dar hogar</span></div>
+    <button onclick="abrirMiMascota()" style="background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;border:none;border-radius:var(--radius);padding:18px 8px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(124,58,237,0.5);transition:transform 0.2s;position:relative;overflow:hidden;" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.96)'" ontouchend="this.style.transform='scale(1)'">
+      <div style="position:absolute;top:-15px;right:-15px;width:60px;height:60px;background:rgba(255,255,255,0.12);border-radius:50%;"></div>
+      <div style="position:absolute;bottom:-10px;left:-10px;width:40px;height:40px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
+      <div style="position:relative;z-index:1;"><span style="display:inline-block;animation:perritoLatido 1.8s ease-in-out infinite;">🐕</span><br>Mi Mascota<br><span style="font-size:10px;opacity:0.9;">caja emergencia</span></div>
     </button>
   </div>
 
@@ -646,6 +648,19 @@ body.dark {
   <div class="cards" id="cards-adopcion"><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div><div class="skeleton"><div class="skeleton-avatar"></div><div class="skeleton-info"><div class="skeleton-line wide"></div><div class="skeleton-line medium"></div><div class="skeleton-line narrow"></div></div></div></div>
 </div>
 
+<div class="screen" id="screen-mimascota">
+  <div class="screen-header" style="background:linear-gradient(135deg,#7C3AED,#EC4899);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="screen-header-title">🐕 Mi Mascota</div>
+        <div class="screen-header-sub">Caja de emergencia digital</div>
+      </div>
+      <button onclick="abrirInfoMiMascota()" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;color:#fff;">?</button>
+    </div>
+  </div>
+  <div id="contenido-mimascota"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <div class="bottom-nav">
@@ -768,14 +783,17 @@ function showToast(msg, type) {
 function showTab(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  document.getElementById('bnav-' + name).classList.add('active');
+  const screen = document.getElementById('screen-' + name);
+  if (screen) screen.classList.add('active');
+  const bnav = document.getElementById('bnav-' + name);
+  if (bnav) bnav.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'inicio') cargarInicio();
   if (name === 'mapa') { cargarMapa(); cargarCards('mapa'); setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 200); }
   if (name === 'perdidos') cargarCards('perdidos');
   if (name === 'encontrados') cargarCards('encontrados');
   if (name === 'adopcion') cargarCards('adopcion');
+  if (name === 'mimascota') renderMisMascotas();
 }
 
 function avatarPerro(r) {
@@ -2300,6 +2318,353 @@ function lanzarConfetti() {
 }
 
 const WHATSAPP_HUELLAVIVA = '573042990199';
+
+// === MI MASCOTA — CAJA DE EMERGENCIA ===
+function abrirMiMascota() {
+  const yaLeyo = localStorage.getItem('mi_mascota_intro') === 'leida';
+  if (yaLeyo) {
+    showTab('mimascota');
+  } else {
+    mostrarIntroduccionMiMascota();
+  }
+}
+
+function abrirInfoMiMascota() {
+  mostrarIntroduccionMiMascota(true);
+}
+
+function mostrarIntroduccionMiMascota(soloInfo = false) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100000;padding:20px;animation:fadeIn 0.3s ease;';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:24px;padding:28px 24px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
+  card.innerHTML = `
+    <div style="font-size:64px;margin-bottom:8px;"><span style="display:inline-block;animation:perritoLatido 1.8s ease-in-out infinite;">🐕</span></div>
+    <h2 style="font-size:22px;font-weight:800;color:#1E1B4B;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📦 Caja de Emergencia</h2>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:18px;line-height:1.5;font-family:Plus Jakarta Sans,sans-serif;">Guarda los datos de tu mascota AHORA para reportar en <strong style="color:#7C3AED;">1 CLIC</strong> si algún día se pierde.</p>
+
+    <div style="background:#F8F7FF;border-radius:14px;padding:14px;margin-bottom:14px;text-align:left;">
+      <div style="font-size:13px;font-weight:700;color:#7C3AED;margin-bottom:8px;">¿Para qué sirve?</div>
+      <div style="font-size:13px;color:#374151;line-height:1.7;">✅ Foto y datos siempre listos<br>✅ Publica reporte en segundos<br>✅ Sin escribir nada en el pánico</div>
+    </div>
+
+    <div style="background:#FEF3C7;border-radius:14px;padding:14px;margin-bottom:18px;text-align:left;border-left:4px solid #F59E0B;">
+      <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:8px;">💡 Diferencia con "Reportar"</div>
+      <div style="font-size:13px;color:#451A03;line-height:1.7;"><strong>📢 Reportar:</strong> Un perro perdido o avistado (de cualquiera).<br><strong>🐕 Mi Mascota:</strong> TU PROPIO perro, datos guardados para emergencia.</div>
+    </div>
+
+    <div style="background:#FEE2E2;border-radius:14px;padding:12px;margin-bottom:18px;text-align:left;border-left:4px solid #EF4444;">
+      <div style="font-size:12px;color:#7F1D1D;line-height:1.5;"><strong>🔒 Privacidad:</strong> Tus datos se guardan SOLO en tu celular. No se publican hasta que toques "Se perdió".</div>
+    </div>
+
+    <button id="btn-entendido" style="width:100%;background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;padding:14px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:10px;box-shadow:0 4px 12px rgba(124,58,237,0.3);">${soloInfo ? 'Entendido' : 'Entendido, ¡vamos! →'}</button>
+    ${soloInfo ? '' : '<button id="btn-mas-adelante" style="width:100%;background:transparent;color:#9CA3AF;padding:10px;border-radius:12px;font-weight:600;font-size:14px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Más adelante</button>'}
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const cerrar = () => { document.body.removeChild(overlay); };
+
+  if (!soloInfo) {
+    card.querySelector('#btn-mas-adelante').onclick = cerrar;
+  }
+  overlay.onclick = (e) => { if (e.target === overlay) cerrar(); };
+
+  card.querySelector('#btn-entendido').onclick = () => {
+    localStorage.setItem('mi_mascota_intro', 'leida');
+    cerrar();
+    if (!soloInfo) {
+      setTimeout(() => showTab('mimascota'), 200);
+    }
+  };
+}
+
+// ============ CRUD MASCOTAS (localStorage) ============
+function getMisMascotas() {
+  try { return JSON.parse(localStorage.getItem('mis_mascotas') || '[]'); }
+  catch(e) { return []; }
+}
+
+function guardarMisMascotas(mascotas) {
+  localStorage.setItem('mis_mascotas', JSON.stringify(mascotas));
+}
+
+function renderMisMascotas() {
+  const cont = document.getElementById('contenido-mimascota');
+  if (!cont) return;
+  const mascotas = getMisMascotas();
+
+  if (mascotas.length === 0) {
+    cont.innerHTML = `
+      <div style="text-align:center;padding:30px 20px;">
+        <div style="font-size:64px;margin-bottom:12px;">🐕</div>
+        <h3 style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Aún no tienes mascotas registradas</h3>
+        <p style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:20px;">Registra tu mascota AHORA y si algún día se pierde, podrás reportarla en 1 click sin escribir nada en el pánico.</p>
+        <button onclick="abrirFormularioMascota()" style="background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-weight:700;font-size:15px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 14px rgba(124,58,237,0.4);">+ Registrar mi mascota</button>
+      </div>
+    `;
+    return;
+  }
+
+  cont.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <button onclick="abrirFormularioMascota()" style="width:100%;background:var(--surface);border:2px dashed var(--primary);border-radius:14px;padding:14px;color:var(--primary);font-weight:700;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">+ Agregar otra mascota</button>
+    </div>
+    ${mascotas.map((m, idx) => renderTarjetaMascota(m, idx)).join('')}
+  `;
+}
+
+function renderTarjetaMascota(m, idx) {
+  const completo = m.nombre && m.foto_url && m.color && m.tamano;
+  const fotoHtml = m.foto_url
+    ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;" alt="${m.nombre}"/>`
+    : '<div style="font-size:48px;display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,var(--surface),var(--surface2));">🐕</div>';
+  return `
+    <div style="background:var(--surface);border-radius:18px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,0.06);border:1px solid var(--border);">
+      <div style="display:flex;gap:12px;padding:14px;">
+        <div style="width:80px;height:80px;border-radius:14px;overflow:hidden;flex-shrink:0;">${fotoHtml}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px;">${m.nombre || 'Sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">${[m.raza, m.color, m.tamano].filter(Boolean).join(' · ') || 'Datos incompletos'}</div>
+          <div style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;${completo ? 'background:#D1FAE5;color:#065F46;' : 'background:#FEF3C7;color:#92400E;'}">${completo ? '✅ Listo para emergencia' : '⚠️ Completa tus datos'}</div>
+        </div>
+      </div>
+      <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${completo ? `<button onclick="activarEmergencia(${idx})" style="grid-column:1/-1;background:linear-gradient(135deg,#EF4444 0%,#DC2626 100%);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 12px rgba(239,68,68,0.4);animation:heartbeat 4s ease-in-out infinite;">🚨 ¡SE PERDIÓ! Reportar ahora</button>` : ''}
+        <button onclick="abrirFormularioMascota(${idx})" style="background:#EDE9FE;color:#7C3AED;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">✏️ Editar</button>
+        <button onclick="borrarMascota(${idx})" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">🗑️ Borrar</button>
+      </div>
+    </div>
+  `;
+}
+
+function borrarMascota(idx) {
+  const mascotas = getMisMascotas();
+  if (!mascotas[idx]) return;
+  if (!confirm('¿Borrar a ' + (mascotas[idx].nombre || 'esta mascota') + '? Esta acción no se puede deshacer.')) return;
+  mascotas.splice(idx, 1);
+  guardarMisMascotas(mascotas);
+  renderMisMascotas();
+  showToast('Mascota borrada', 'success');
+}
+
+// ============ FORMULARIO MASCOTA ============
+function abrirFormularioMascota(idx = null) {
+  const mascotas = getMisMascotas();
+  const m = (idx !== null && mascotas[idx]) ? mascotas[idx] : {};
+  const editando = idx !== null;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:flex-start;justify-content:center;z-index:100000;padding:20px;animation:fadeIn 0.3s ease;overflow-y:auto;';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'background:#fff;border-radius:24px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;';
+  card.innerHTML = `
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:48px;margin-bottom:6px;">🐕</div>
+      <h2 style="font-size:20px;font-weight:800;color:#1E1B4B;font-family:Plus Jakarta Sans,sans-serif;">${editando ? 'Editar mascota' : 'Nueva mascota'}</h2>
+      <p style="font-size:12px;color:#6B7280;margin-top:4px;font-family:Plus Jakarta Sans,sans-serif;">Datos seguros en tu celular</p>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📷 Foto del perro</label>
+      <div id="preview-foto-mascota" style="width:100%;height:160px;border-radius:14px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:48px;color:#9CA3AF;overflow:hidden;cursor:pointer;border:2px dashed #D1D5DB;" onclick="document.getElementById('input-foto-mascota').click()">
+        ${m.foto_url ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;"/>` : '📷'}
+      </div>
+      <input type="file" id="input-foto-mascota" accept="image/*" style="display:none;"/>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:4px;text-align:center;font-family:Plus Jakarta Sans,sans-serif;">Toca para cambiar la foto</div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Nombre del perro *</label>
+      <input id="mm-nombre" type="text" value="${(m.nombre || '').replace(/"/g,'&quot;')}" placeholder="Ej: Toby" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Raza</label>
+        <input id="mm-raza" type="text" value="${(m.raza || '').replace(/"/g,'&quot;')}" placeholder="Mestizo, etc" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Color *</label>
+        <input id="mm-color" type="text" value="${(m.color || '').replace(/"/g,'&quot;')}" placeholder="Marrón, negro" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Tamaño *</label>
+        <select id="mm-tamano" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
+          <option value="">Selecciona</option>
+          <option value="Pequeño" ${m.tamano==='Pequeño'?'selected':''}>Pequeño</option>
+          <option value="Mediano" ${m.tamano==='Mediano'?'selected':''}>Mediano</option>
+          <option value="Grande" ${m.tamano==='Grande'?'selected':''}>Grande</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Sexo</label>
+        <select id="mm-sexo" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
+          <option value="">Selecciona</option>
+          <option value="Macho" ${m.sexo==='Macho'?'selected':''}>Macho</option>
+          <option value="Hembra" ${m.sexo==='Hembra'?'selected':''}>Hembra</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📱 Tu teléfono (para emergencia) *</label>
+      <input id="mm-telefono" type="tel" value="${(m.telefono || '').replace(/"/g,'&quot;')}" placeholder="3XX XXX XXXX" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📍 Tu barrio o zona habitual</label>
+      <input id="mm-ubicacion" type="text" value="${(m.ubicacion || '').replace(/"/g,'&quot;')}" placeholder="Ej: El Rodadero" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📝 Características únicas (collar, manchas, etc)</label>
+      <textarea id="mm-caracteristicas" placeholder="Ej: Tiene collar rojo, mancha blanca en la pata derecha" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:60px;">${(m.caracteristicas || '').replace(/</g,'&lt;')}</textarea>
+    </div>
+
+    <button id="btn-guardar-mascota" style="width:100%;background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;padding:14px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:10px;box-shadow:0 4px 12px rgba(124,58,237,0.3);">${editando ? 'Guardar cambios' : 'Guardar mascota'}</button>
+    <button id="btn-cancelar-mascota" style="width:100%;background:transparent;color:#9CA3AF;padding:10px;border-radius:12px;font-weight:600;font-size:14px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Cancelar</button>
+  `;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  const cerrar = () => { document.body.removeChild(overlay); };
+
+  let fotoUrlNueva = m.foto_url || null;
+  let fotoSubiendo = false;
+
+  // Manejo de subida de foto
+  card.querySelector('#input-foto-mascota').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    fotoSubiendo = true;
+    const preview = card.querySelector('#preview-foto-mascota');
+    preview.innerHTML = '<div style="font-size:13px;color:#6B7280;font-family:Plus Jakarta Sans,sans-serif;">Subiendo foto... ⏳</div>';
+    try {
+      const url = await subirFoto(file);
+      fotoUrlNueva = url;
+      preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;"/>`;
+    } catch(err) {
+      preview.innerHTML = '<div style="font-size:13px;color:#EF4444;font-family:Plus Jakarta Sans,sans-serif;">Error subiendo foto</div>';
+    } finally {
+      fotoSubiendo = false;
+    }
+  });
+
+  card.querySelector('#btn-cancelar-mascota').onclick = cerrar;
+
+  card.querySelector('#btn-guardar-mascota').onclick = () => {
+    if (fotoSubiendo) { showToast('Espera a que termine la foto', 'error'); return; }
+    const nombre = card.querySelector('#mm-nombre').value.trim();
+    const raza = card.querySelector('#mm-raza').value.trim();
+    const color = card.querySelector('#mm-color').value.trim();
+    const tamano = card.querySelector('#mm-tamano').value;
+    const sexo = card.querySelector('#mm-sexo').value;
+    const telefono = card.querySelector('#mm-telefono').value.trim();
+    const ubicacion = card.querySelector('#mm-ubicacion').value.trim();
+    const caracteristicas = card.querySelector('#mm-caracteristicas').value.trim();
+
+    if (!nombre) { showToast('Pon el nombre del perro', 'error'); return; }
+    if (!color) { showToast('Pon el color del perro', 'error'); return; }
+    if (!tamano) { showToast('Selecciona el tamaño', 'error'); return; }
+    if (!telefono) { showToast('Pon tu teléfono', 'error'); return; }
+
+    const nuevaMascota = {
+      nombre, raza, color, tamano, sexo, telefono, ubicacion, caracteristicas,
+      foto_url: fotoUrlNueva,
+      created_at: m.created_at || new Date().toISOString()
+    };
+
+    const mascotas = getMisMascotas();
+    if (editando) {
+      mascotas[idx] = nuevaMascota;
+    } else {
+      mascotas.push(nuevaMascota);
+    }
+    guardarMisMascotas(mascotas);
+    cerrar();
+    renderMisMascotas();
+    showToast(editando ? '✅ Mascota actualizada' : '✅ ¡Mascota guardada!', 'success');
+  };
+}
+
+// ============ ACTIVAR EMERGENCIA ============
+async function activarEmergencia(idx) {
+  const mascotas = getMisMascotas();
+  const m = mascotas[idx];
+  if (!m) return;
+
+  const confirmacion = confirm(
+    '🚨 ALERTA DE EMERGENCIA\n\n' +
+    '¿Confirmas que ' + m.nombre + ' se perdió?\n\n' +
+    'Se publicará automáticamente un reporte con todos los datos.\n\n' +
+    '⚠️ Esta acción es IRREVERSIBLE para el reporte público.'
+  );
+  if (!confirmacion) return;
+
+  showToast('🚨 Publicando reporte de emergencia...', 'success');
+
+  // Intentar obtener GPS actual
+  let lat = null, lng = null, ubicacionFinal = m.ubicacion || 'Santa Marta';
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6000 });
+    });
+    lat = pos.coords.latitude;
+    lng = pos.coords.longitude;
+  } catch(e) {
+    // Si falla GPS, usar centro Santa Marta como aproximado
+    lat = 11.2408;
+    lng = -74.2110;
+  }
+
+  const descripcion = [
+    'Mi perro ' + m.nombre + ' se perdió.',
+    m.caracteristicas ? 'Características: ' + m.caracteristicas : '',
+    m.sexo ? 'Sexo: ' + m.sexo : ''
+  ].filter(Boolean).join(' ');
+
+  const datos = {
+    tipo: 'perdido',
+    nombre: m.nombre,
+    raza: m.raza || 'Mestizo',
+    color: m.color,
+    tamano: m.tamano,
+    genero: m.sexo || null,
+    telefono: m.telefono,
+    foto_url: m.foto_url,
+    lat: lat,
+    lng: lng,
+    ubicacion: ubicacionFinal,
+    activo: true,
+    ubicacion_aproximada: !navigator.geolocation,
+    ciudad: 'Santa Marta',
+    descripcion: descripcion
+  };
+
+  try {
+    const resultado = await supabase('POST', 'reportes', datos);
+    const nuevoId = resultado && resultado[0] && resultado[0].id;
+    if (nuevoId) {
+      const misReportes = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
+      misReportes.push(nuevoId);
+      localStorage.setItem('mis_reportes', JSON.stringify(misReportes));
+    }
+    showToast('🚨 ¡Reporte publicado! Buscando a ' + m.nombre, 'success');
+    setTimeout(() => {
+      showTab('perdidos');
+    }, 1500);
+  } catch(e) {
+    showToast('Error publicando el reporte. Intenta de nuevo.', 'error');
+  }
+}
 
 function mostrarInvitacionTestimonio(reporte) {
   const overlay = document.createElement('div');

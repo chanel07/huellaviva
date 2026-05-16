@@ -2421,6 +2421,16 @@ function renderTarjetaMascota(m, idx) {
   const fotoHtml = m.foto_url
     ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;" alt="${m.nombre}"/>`
     : '<div style="font-size:48px;display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,var(--surface),var(--surface2));">🐕</div>';
+
+  // Badges adicionales con info extra
+  const badges = [];
+  if (m.tiene_microchip) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#DBEAFE;color:#1E3A8A;">🆔 Microchip</span>');
+  if (m.esterilizado) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FCE7F3;color:#831843;">✂️ Esterilizado</span>');
+  if (m.vacunas && m.vacunas.length) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#D1FAE5;color:#065F46;">💉 ' + m.vacunas.length + ' vacuna' + (m.vacunas.length>1?'s':'') + '</span>');
+  if (m.recompensa) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;">💰 Recompensa</span>');
+  if (m.familiares && m.familiares.length) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#EDE9FE;color:#5B21B6;">👨‍👩‍👧 +' + m.familiares.length + ' contacto' + (m.familiares.length>1?'s':'') + '</span>');
+  if (m.medicamentos || m.alergias) badges.push('<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FEE2E2;color:#7F1D1D;">⚠️ Atención médica</span>');
+
   return `
     <div style="background:var(--surface);border-radius:18px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,0.06);border:1px solid var(--border);">
       <div style="display:flex;gap:12px;padding:14px;">
@@ -2431,6 +2441,7 @@ function renderTarjetaMascota(m, idx) {
           <div style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;${completo ? 'background:#D1FAE5;color:#065F46;' : 'background:#FEF3C7;color:#92400E;'}">${completo ? '✅ Listo para emergencia' : '⚠️ Completa tus datos'}</div>
         </div>
       </div>
+      ${badges.length ? `<div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:5px;">${badges.join('')}</div>` : ''}
       <div style="padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         ${completo ? `<button onclick="activarEmergencia(${idx})" style="grid-column:1/-1;background:linear-gradient(135deg,#EF4444 0%,#DC2626 100%);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 12px rgba(239,68,68,0.4);animation:heartbeat 4s ease-in-out infinite;">🚨 ¡SE PERDIÓ! Reportar ahora</button>` : ''}
         <button onclick="abrirFormularioMascota(${idx})" style="background:#EDE9FE;color:#7C3AED;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">✏️ Editar</button>
@@ -2456,11 +2467,17 @@ function abrirFormularioMascota(idx = null) {
   const m = (idx !== null && mascotas[idx]) ? mascotas[idx] : {};
   const editando = idx !== null;
 
+  // Asegurar arrays para listas dinámicas
+  if (!m.telefonos_extra) m.telefonos_extra = [];
+  if (!m.familiares) m.familiares = [];
+  if (!m.vacunas) m.vacunas = [];
+
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:flex-start;justify-content:center;z-index:100000;padding:20px;animation:fadeIn 0.3s ease;overflow-y:auto;';
 
   const card = document.createElement('div');
-  card.style.cssText = 'background:#fff;border-radius:24px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;';
+  card.style.cssText = 'background:#fff;border-radius:24px;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);margin:auto;';
+
   card.innerHTML = `
     <div style="text-align:center;margin-bottom:18px;">
       <div style="font-size:48px;margin-bottom:6px;">🐕</div>
@@ -2468,79 +2485,290 @@ function abrirFormularioMascota(idx = null) {
       <p style="font-size:12px;color:#6B7280;margin-top:4px;font-family:Plus Jakarta Sans,sans-serif;">Datos seguros en tu celular</p>
     </div>
 
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📷 Foto del perro</label>
-      <div id="preview-foto-mascota" style="width:100%;height:160px;border-radius:14px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:48px;color:#9CA3AF;overflow:hidden;cursor:pointer;border:2px dashed #D1D5DB;" onclick="document.getElementById('input-foto-mascota').click()">
-        ${m.foto_url ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;"/>` : '📷'}
-      </div>
-      <input type="file" id="input-foto-mascota" accept="image/*" style="display:none;"/>
-      <div style="font-size:11px;color:#9CA3AF;margin-top:4px;text-align:center;font-family:Plus Jakarta Sans,sans-serif;">Toca para cambiar la foto</div>
+    <!-- TABS NAVEGACIÓN -->
+    <div style="display:flex;gap:4px;margin-bottom:18px;background:#F3F4F6;padding:4px;border-radius:12px;overflow-x:auto;">
+      <button class="mm-tab active" data-tab="basico" style="flex:1;min-width:80px;padding:8px 4px;border:none;border-radius:8px;background:#fff;color:#7C3AED;font-weight:700;font-size:12px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 1px 3px rgba(0,0,0,0.1);">Básico</button>
+      <button class="mm-tab" data-tab="contactos" style="flex:1;min-width:80px;padding:8px 4px;border:none;border-radius:8px;background:transparent;color:#6B7280;font-weight:700;font-size:12px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Contactos</button>
+      <button class="mm-tab" data-tab="medico" style="flex:1;min-width:80px;padding:8px 4px;border:none;border-radius:8px;background:transparent;color:#6B7280;font-weight:700;font-size:12px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Médico</button>
+      <button class="mm-tab" data-tab="veterinaria" style="flex:1;min-width:80px;padding:8px 4px;border:none;border-radius:8px;background:transparent;color:#6B7280;font-weight:700;font-size:12px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Vet</button>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Nombre del perro *</label>
-      <input id="mm-nombre" type="text" value="${(m.nombre || '').replace(/"/g,'&quot;')}" placeholder="Ej: Toby" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    <!-- TAB 1: BÁSICO -->
+    <div class="mm-tab-content" data-tab-content="basico">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📷 Foto del perro</label>
+        <div id="preview-foto-mascota" style="width:100%;height:160px;border-radius:14px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:48px;color:#9CA3AF;overflow:hidden;cursor:pointer;border:2px dashed #D1D5DB;" onclick="document.getElementById('input-foto-mascota').click()">
+          ${m.foto_url ? `<img src="${m.foto_url}" style="width:100%;height:100%;object-fit:cover;"/>` : '📷'}
+        </div>
+        <input type="file" id="input-foto-mascota" accept="image/*" style="display:none;"/>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;text-align:center;font-family:Plus Jakarta Sans,sans-serif;">Toca para cambiar la foto</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Nombre del perro *</label>
+        <input id="mm-nombre" type="text" value="${(m.nombre || '').replace(/"/g,'&quot;')}" placeholder="Ej: Toby" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Raza</label>
+          <input id="mm-raza" type="text" value="${(m.raza || '').replace(/"/g,'&quot;')}" placeholder="Mestizo, etc" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Color *</label>
+          <input id="mm-color" type="text" value="${(m.color || '').replace(/"/g,'&quot;')}" placeholder="Marrón, negro" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Tamaño *</label>
+          <select id="mm-tamano" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
+            <option value="">Selecciona</option>
+            <option value="Pequeño" ${m.tamano==='Pequeño'?'selected':''}>Pequeño</option>
+            <option value="Mediano" ${m.tamano==='Mediano'?'selected':''}>Mediano</option>
+            <option value="Grande" ${m.tamano==='Grande'?'selected':''}>Grande</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Sexo</label>
+          <select id="mm-sexo" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
+            <option value="">Selecciona</option>
+            <option value="Macho" ${m.sexo==='Macho'?'selected':''}>Macho</option>
+            <option value="Hembra" ${m.sexo==='Hembra'?'selected':''}>Hembra</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📅 Edad</label>
+        <input id="mm-edad" type="text" value="${(m.edad || '').replace(/"/g,'&quot;')}" placeholder="Ej: 3 años" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📝 Características únicas (collar, manchas, etc)</label>
+        <textarea id="mm-caracteristicas" placeholder="Ej: Tiene collar rojo, mancha blanca en la pata derecha" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:60px;">${(m.caracteristicas || '').replace(/</g,'&lt;')}</textarea>
+      </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div>
-        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Raza</label>
-        <input id="mm-raza" type="text" value="${(m.raza || '').replace(/"/g,'&quot;')}" placeholder="Mestizo, etc" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    <!-- TAB 2: CONTACTOS -->
+    <div class="mm-tab-content" data-tab-content="contactos" style="display:none;">
+      <div style="background:#EFF6FF;border-radius:12px;padding:12px;margin-bottom:14px;border-left:4px solid #3B82F6;">
+        <div style="font-size:12px;color:#1E3A8A;line-height:1.5;font-family:Plus Jakarta Sans,sans-serif;">📞 <strong>Teléfonos para emergencia.</strong> Mientras más, mejor — si tú no contestas, llamarán a otro.</div>
       </div>
-      <div>
-        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Color *</label>
-        <input id="mm-color" type="text" value="${(m.color || '').replace(/"/g,'&quot;')}" placeholder="Marrón, negro" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📱 Tu teléfono principal *</label>
+        <input id="mm-telefono" type="tel" value="${(m.telefono || '').replace(/"/g,'&quot;')}" placeholder="3XX XXX XXXX" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📍 Tu barrio o zona habitual</label>
+        <input id="mm-ubicacion" type="text" value="${(m.ubicacion || '').replace(/"/g,'&quot;')}" placeholder="Ej: El Rodadero" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <!-- TELÉFONOS SECUNDARIOS -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📞 Teléfonos adicionales</label>
+        <div id="mm-telefonos-extra-list"></div>
+        <button type="button" id="mm-add-telefono" style="width:100%;background:#F3F4F6;border:1px dashed #9CA3AF;border-radius:10px;padding:10px;color:#6B7280;font-weight:600;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">+ Agregar otro teléfono</button>
+      </div>
+
+      <!-- RED FAMILIAR -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">👨‍👩‍👧 Red familiar (autorizados a activar emergencia)</label>
+        <div id="mm-familiares-list"></div>
+        <button type="button" id="mm-add-familiar" style="width:100%;background:#F3F4F6;border:1px dashed #9CA3AF;border-radius:10px;padding:10px;color:#6B7280;font-weight:600;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">+ Agregar familiar</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">💰 ¿Ofreces recompensa?</label>
+        <input id="mm-recompensa" type="text" value="${(m.recompensa || '').replace(/"/g,'&quot;')}" placeholder="Ej: $200.000 o vacío" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div>
-        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Tamaño *</label>
-        <select id="mm-tamano" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
+    <!-- TAB 3: MÉDICO -->
+    <div class="mm-tab-content" data-tab-content="medico" style="display:none;">
+      <div style="background:#FEF2F2;border-radius:12px;padding:12px;margin-bottom:14px;border-left:4px solid #EF4444;">
+        <div style="font-size:12px;color:#7F1D1D;line-height:1.5;font-family:Plus Jakarta Sans,sans-serif;">🏥 <strong>Información médica.</strong> Útil si alguien lo encuentra y necesita ayudarlo o llevarlo al veterinario.</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">💊 ¿Toma medicamentos?</label>
+        <textarea id="mm-medicamentos" placeholder="Ej: Toma insulina cada 12 horas" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:55px;">${(m.medicamentos || '').replace(/</g,'&lt;')}</textarea>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">⚠️ Alergias o enfermedades</label>
+        <textarea id="mm-alergias" placeholder="Ej: Alérgico al pollo, tiene displasia" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:55px;">${(m.alergias || '').replace(/</g,'&lt;')}</textarea>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">🐕 Comportamiento con extraños</label>
+        <select id="mm-comportamiento" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
           <option value="">Selecciona</option>
-          <option value="Pequeño" ${m.tamano==='Pequeño'?'selected':''}>Pequeño</option>
-          <option value="Mediano" ${m.tamano==='Mediano'?'selected':''}>Mediano</option>
-          <option value="Grande" ${m.tamano==='Grande'?'selected':''}>Grande</option>
+          <option value="Amigable - se acerca" ${m.comportamiento==='Amigable - se acerca'?'selected':''}>🐾 Amigable - se acerca</option>
+          <option value="Tímido - huye" ${m.comportamiento==='Tímido - huye'?'selected':''}>😟 Tímido - huye</option>
+          <option value="Asustadizo" ${m.comportamiento==='Asustadizo'?'selected':''}>😰 Asustadizo</option>
+          <option value="Puede ser agresivo" ${m.comportamiento==='Puede ser agresivo'?'selected':''}>⚠️ Puede ser agresivo</option>
         </select>
       </div>
-      <div>
-        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">Sexo</label>
-        <select id="mm-sexo" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;background:#fff;">
-          <option value="">Selecciona</option>
-          <option value="Macho" ${m.sexo==='Macho'?'selected':''}>Macho</option>
-          <option value="Hembra" ${m.sexo==='Hembra'?'selected':''}>Hembra</option>
-        </select>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">🍖 Comida favorita / restricciones</label>
+        <input id="mm-comida" type="text" value="${(m.comida || '').replace(/"/g,'&quot;')}" placeholder="Ej: Croquetas Royal Canin" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <!-- MICROCHIP -->
+      <div style="background:#F8F7FF;border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <input type="checkbox" id="mm-tiene-microchip" ${m.tiene_microchip ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;"/>
+          <label for="mm-tiene-microchip" style="font-size:14px;font-weight:700;color:#374151;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">🆔 Tiene microchip implantado</label>
+        </div>
+        <input id="mm-microchip" type="text" value="${(m.microchip || '').replace(/"/g,'&quot;')}" placeholder="Número del microchip" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;${m.tiene_microchip ? '' : 'display:none;'}" />
       </div>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📱 Tu teléfono (para emergencia) *</label>
-      <input id="mm-telefono" type="tel" value="${(m.telefono || '').replace(/"/g,'&quot;')}" placeholder="3XX XXX XXXX" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+    <!-- TAB 4: VETERINARIA -->
+    <div class="mm-tab-content" data-tab-content="veterinaria" style="display:none;">
+      <div style="background:#F0FDF4;border-radius:12px;padding:12px;margin-bottom:14px;border-left:4px solid #10B981;">
+        <div style="font-size:12px;color:#064E3B;line-height:1.5;font-family:Plus Jakarta Sans,sans-serif;">💉 <strong>Carnet veterinario.</strong> Historia clínica y de vacunación.</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">🏥 Veterinaria habitual</label>
+        <input id="mm-veterinaria" type="text" value="${(m.veterinaria || '').replace(/"/g,'&quot;')}" placeholder="Ej: Veterinaria San Marcos" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📞 Teléfono de la veterinaria</label>
+        <input id="mm-tel-veterinaria" type="tel" value="${(m.tel_veterinaria || '').replace(/"/g,'&quot;')}" placeholder="Ej: 3XX XXX XXXX" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#374151;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">
+          <input type="checkbox" id="mm-esterilizado" ${m.esterilizado ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;"/>
+          ✂️ Está esterilizado / castrado
+        </label>
+      </div>
+
+      <!-- VACUNAS -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">💉 Vacunas aplicadas</label>
+        <div id="mm-vacunas-list"></div>
+        <button type="button" id="mm-add-vacuna" style="width:100%;background:#F3F4F6;border:1px dashed #9CA3AF;border-radius:10px;padding:10px;color:#6B7280;font-weight:600;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">+ Agregar vacuna</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📝 Notas adicionales</label>
+        <textarea id="mm-notas-vet" placeholder="Cualquier otra información veterinaria relevante" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:60px;">${(m.notas_vet || '').replace(/</g,'&lt;')}</textarea>
+      </div>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📍 Tu barrio o zona habitual</label>
-      <input id="mm-ubicacion" type="text" value="${(m.ubicacion || '').replace(/"/g,'&quot;')}" placeholder="Ej: El Rodadero" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
-    </div>
-
-    <div style="margin-bottom:18px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:Plus Jakarta Sans,sans-serif;">📝 Características únicas (collar, manchas, etc)</label>
-      <textarea id="mm-caracteristicas" placeholder="Ej: Tiene collar rojo, mancha blanca en la pata derecha" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:Plus Jakarta Sans,sans-serif;outline:none;resize:none;height:60px;">${(m.caracteristicas || '').replace(/</g,'&lt;')}</textarea>
-    </div>
-
-    <button id="btn-guardar-mascota" style="width:100%;background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;padding:14px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:10px;box-shadow:0 4px 12px rgba(124,58,237,0.3);">${editando ? 'Guardar cambios' : 'Guardar mascota'}</button>
+    <button id="btn-guardar-mascota" style="width:100%;background:linear-gradient(135deg,#7C3AED 0%,#EC4899 100%);color:#fff;padding:14px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:10px;box-shadow:0 4px 12px rgba(124,58,237,0.3);margin-top:8px;">${editando ? 'Guardar cambios' : 'Guardar mascota'}</button>
     <button id="btn-cancelar-mascota" style="width:100%;background:transparent;color:#9CA3AF;padding:10px;border-radius:12px;font-weight:600;font-size:14px;border:none;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Cancelar</button>
   `;
 
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
+  // === TABS NAVIGATION ===
+  card.querySelectorAll('.mm-tab').forEach(tab => {
+    tab.onclick = () => {
+      card.querySelectorAll('.mm-tab').forEach(t => {
+        t.style.background = 'transparent';
+        t.style.color = '#6B7280';
+        t.style.boxShadow = 'none';
+        t.classList.remove('active');
+      });
+      tab.style.background = '#fff';
+      tab.style.color = '#7C3AED';
+      tab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+      tab.classList.add('active');
+      card.querySelectorAll('.mm-tab-content').forEach(c => c.style.display = 'none');
+      card.querySelector(`[data-tab-content="${tab.dataset.tab}"]`).style.display = 'block';
+    };
+  });
+
+  // === TELÉFONOS EXTRA ===
+  const renderTelefonosExtra = () => {
+    const cont = card.querySelector('#mm-telefonos-extra-list');
+    cont.innerHTML = m.telefonos_extra.map((tel, i) => `
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input data-tel-idx="${i}" type="tel" value="${tel.replace(/"/g,'&quot;')}" placeholder="3XX XXX XXXX" style="flex:1;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+        <button type="button" data-rm-tel="${i}" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;padding:0 12px;font-weight:700;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">✕</button>
+      </div>
+    `).join('');
+    cont.querySelectorAll('[data-rm-tel]').forEach(btn => {
+      btn.onclick = () => { m.telefonos_extra.splice(parseInt(btn.dataset.rmTel), 1); renderTelefonosExtra(); };
+    });
+    cont.querySelectorAll('[data-tel-idx]').forEach(inp => {
+      inp.oninput = (e) => { m.telefonos_extra[parseInt(inp.dataset.telIdx)] = e.target.value; };
+    });
+  };
+  renderTelefonosExtra();
+  card.querySelector('#mm-add-telefono').onclick = () => { m.telefonos_extra.push(''); renderTelefonosExtra(); };
+
+  // === FAMILIARES ===
+  const renderFamiliares = () => {
+    const cont = card.querySelector('#mm-familiares-list');
+    cont.innerHTML = m.familiares.map((f, i) => `
+      <div style="background:#FAFAFA;border-radius:10px;padding:10px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input data-fam-nombre="${i}" type="text" value="${(f.nombre || '').replace(/"/g,'&quot;')}" placeholder="Nombre del familiar" style="flex:1;padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+          <button type="button" data-rm-fam="${i}" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;padding:0 12px;font-weight:700;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">✕</button>
+        </div>
+        <input data-fam-tel="${i}" type="tel" value="${(f.telefono || '').replace(/"/g,'&quot;')}" placeholder="Teléfono del familiar" style="width:100%;padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+    `).join('');
+    cont.querySelectorAll('[data-rm-fam]').forEach(btn => {
+      btn.onclick = () => { m.familiares.splice(parseInt(btn.dataset.rmFam), 1); renderFamiliares(); };
+    });
+    cont.querySelectorAll('[data-fam-nombre]').forEach(inp => {
+      inp.oninput = (e) => { m.familiares[parseInt(inp.dataset.famNombre)].nombre = e.target.value; };
+    });
+    cont.querySelectorAll('[data-fam-tel]').forEach(inp => {
+      inp.oninput = (e) => { m.familiares[parseInt(inp.dataset.famTel)].telefono = e.target.value; };
+    });
+  };
+  renderFamiliares();
+  card.querySelector('#mm-add-familiar').onclick = () => { m.familiares.push({ nombre: '', telefono: '' }); renderFamiliares(); };
+
+  // === VACUNAS ===
+  const renderVacunas = () => {
+    const cont = card.querySelector('#mm-vacunas-list');
+    cont.innerHTML = m.vacunas.map((v, i) => `
+      <div style="background:#FAFAFA;border-radius:10px;padding:10px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input data-vac-nombre="${i}" type="text" value="${(v.nombre || '').replace(/"/g,'&quot;')}" placeholder="Ej: Rabia, Parvovirus" style="flex:1;padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+          <button type="button" data-rm-vac="${i}" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;padding:0 12px;font-weight:700;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">✕</button>
+        </div>
+        <input data-vac-fecha="${i}" type="text" value="${(v.fecha || '').replace(/"/g,'&quot;')}" placeholder="Fecha (Ej: Enero 2026)" style="width:100%;padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;outline:none;"/>
+      </div>
+    `).join('');
+    cont.querySelectorAll('[data-rm-vac]').forEach(btn => {
+      btn.onclick = () => { m.vacunas.splice(parseInt(btn.dataset.rmVac), 1); renderVacunas(); };
+    });
+    cont.querySelectorAll('[data-vac-nombre]').forEach(inp => {
+      inp.oninput = (e) => { m.vacunas[parseInt(inp.dataset.vacNombre)].nombre = e.target.value; };
+    });
+    cont.querySelectorAll('[data-vac-fecha]').forEach(inp => {
+      inp.oninput = (e) => { m.vacunas[parseInt(inp.dataset.vacFecha)].fecha = e.target.value; };
+    });
+  };
+  renderVacunas();
+  card.querySelector('#mm-add-vacuna').onclick = () => { m.vacunas.push({ nombre: '', fecha: '' }); renderVacunas(); };
+
+  // === MICROCHIP toggle ===
+  card.querySelector('#mm-tiene-microchip').onchange = (e) => {
+    card.querySelector('#mm-microchip').style.display = e.target.checked ? 'block' : 'none';
+  };
+
   const cerrar = () => { document.body.removeChild(overlay); };
 
   let fotoUrlNueva = m.foto_url || null;
   let fotoSubiendo = false;
 
-  // Manejo de subida de foto
   card.querySelector('#input-foto-mascota').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -2567,18 +2795,39 @@ function abrirFormularioMascota(idx = null) {
     const color = card.querySelector('#mm-color').value.trim();
     const tamano = card.querySelector('#mm-tamano').value;
     const sexo = card.querySelector('#mm-sexo').value;
+    const edad = card.querySelector('#mm-edad').value.trim();
     const telefono = card.querySelector('#mm-telefono').value.trim();
     const ubicacion = card.querySelector('#mm-ubicacion').value.trim();
     const caracteristicas = card.querySelector('#mm-caracteristicas').value.trim();
+    const recompensa = card.querySelector('#mm-recompensa').value.trim();
+    const medicamentos = card.querySelector('#mm-medicamentos').value.trim();
+    const alergias = card.querySelector('#mm-alergias').value.trim();
+    const comportamiento = card.querySelector('#mm-comportamiento').value;
+    const comida = card.querySelector('#mm-comida').value.trim();
+    const tiene_microchip = card.querySelector('#mm-tiene-microchip').checked;
+    const microchip = card.querySelector('#mm-microchip').value.trim();
+    const veterinaria = card.querySelector('#mm-veterinaria').value.trim();
+    const tel_veterinaria = card.querySelector('#mm-tel-veterinaria').value.trim();
+    const esterilizado = card.querySelector('#mm-esterilizado').checked;
+    const notas_vet = card.querySelector('#mm-notas-vet').value.trim();
 
     if (!nombre) { showToast('Pon el nombre del perro', 'error'); return; }
     if (!color) { showToast('Pon el color del perro', 'error'); return; }
     if (!tamano) { showToast('Selecciona el tamaño', 'error'); return; }
-    if (!telefono) { showToast('Pon tu teléfono', 'error'); return; }
+    if (!telefono) { showToast('Pon tu teléfono principal', 'error'); return; }
+
+    // Limpiar teléfonos extra vacíos y familiares incompletos
+    const telefonos_extra = m.telefonos_extra.filter(t => t.trim());
+    const familiares = m.familiares.filter(f => f.nombre.trim() && f.telefono.trim());
+    const vacunas = m.vacunas.filter(v => v.nombre.trim());
 
     const nuevaMascota = {
-      nombre, raza, color, tamano, sexo, telefono, ubicacion, caracteristicas,
+      nombre, raza, color, tamano, sexo, edad, telefono, ubicacion, caracteristicas,
       foto_url: fotoUrlNueva,
+      telefonos_extra, familiares, recompensa,
+      medicamentos, alergias, comportamiento, comida,
+      tiene_microchip, microchip: tiene_microchip ? microchip : '',
+      veterinaria, tel_veterinaria, esterilizado, vacunas, notas_vet,
       created_at: m.created_at || new Date().toISOString()
     };
 
@@ -2625,11 +2874,40 @@ async function activarEmergencia(idx) {
     lng = -74.2110;
   }
 
-  const descripcion = [
-    'Mi perro ' + m.nombre + ' se perdió.',
-    m.caracteristicas ? 'Características: ' + m.caracteristicas : '',
-    m.sexo ? 'Sexo: ' + m.sexo : ''
-  ].filter(Boolean).join(' ');
+  // Construir descripción enriquecida con toda la info
+  const partes = ['Mi perro ' + m.nombre + ' se perdió.'];
+  if (m.edad) partes.push('Edad: ' + m.edad + '.');
+  if (m.sexo) partes.push('Sexo: ' + m.sexo + '.');
+  if (m.caracteristicas) partes.push('Características: ' + m.caracteristicas);
+
+  if (m.comportamiento) partes.push('🐕 Comportamiento: ' + m.comportamiento + '.');
+  if (m.tiene_microchip && m.microchip) partes.push('🆔 Microchip: ' + m.microchip + '.');
+  if (m.esterilizado) partes.push('✂️ Esterilizado.');
+  if (m.medicamentos) partes.push('💊 IMPORTANTE - Medicamentos: ' + m.medicamentos);
+  if (m.alergias) partes.push('⚠️ Alergias/enfermedades: ' + m.alergias);
+  if (m.comida) partes.push('🍖 Comida: ' + m.comida + '.');
+  if (m.veterinaria) {
+    let vet = '🏥 Veterinaria habitual: ' + m.veterinaria;
+    if (m.tel_veterinaria) vet += ' (' + m.tel_veterinaria + ')';
+    partes.push(vet + '.');
+  }
+  if (m.recompensa) partes.push('💰 RECOMPENSA: ' + m.recompensa);
+
+  // Contactos adicionales
+  const todosTelefonos = [m.telefono];
+  if (m.telefonos_extra && m.telefonos_extra.length) {
+    m.telefonos_extra.forEach(t => { if (t) todosTelefonos.push(t); });
+  }
+  if (m.familiares && m.familiares.length) {
+    m.familiares.forEach(f => {
+      if (f.nombre && f.telefono) partes.push('📞 ' + f.nombre + ': ' + f.telefono);
+    });
+  }
+  if (todosTelefonos.length > 1) {
+    partes.push('📱 Otros contactos: ' + todosTelefonos.slice(1).join(' / '));
+  }
+
+  const descripcion = partes.join(' ');
 
   const datos = {
     tipo: 'perdido',

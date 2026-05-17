@@ -3736,9 +3736,11 @@ function mostrarFormEditar(r, modalDetalle) {
     text-align: center;
     pointer-events: auto;
     cursor: pointer;
-    transition: left 0.15s ease-out, top 0.15s ease-out, transform 0.3s ease-out;
+    transition: left 0.3s ease-out, top 0.3s ease-out, transform 0.4s ease-out, opacity 0.3s;
     z-index: 6;
-    animation: arMarkerEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: arMarkerEnter 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center bottom;
+    will-change: transform, left, top;
   }
   .ar-marker-photo {
     width: 80px;
@@ -3795,6 +3797,7 @@ function mostrarFormEditar(r, modalDetalle) {
 let arStream = null;
 let arWatching = false;
 let arHeading = 0;
+let arHeadingSuavizado = 0; // heading filtrado para evitar temblores
 let arUserPos = null;
 let arReportesCerca = [];
 let arPermissionGranted = false;
@@ -3804,6 +3807,8 @@ let arUltimaVibracion = 0;
 let arCalibrado = false;
 let arCalibracionMovimientos = 0;
 let arHeadingAnterior = null;
+let arUltimoRender = 0;
+let arRenderPendiente = false;
 
 async function iniciarModoAR() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -3927,20 +3932,45 @@ function handleOrientation(event) {
     heading = 360 - event.alpha;
   }
   if (heading === null) return;
-  arHeading = heading;
 
-  // Detectar movimiento durante calibración
+  // SUAVIZADO: filtro low-pass para evitar temblores
+  // Maneja correctamente el cruce 0/360
+  if (arHeadingSuavizado === 0 && arHeading === 0) {
+    arHeadingSuavizado = heading;
+  } else {
+    let diff = heading - arHeadingSuavizado;
+    // Normalizar diferencia al rango [-180, 180]
+    if (diff > 180) diff -= 360;
+    else if (diff < -180) diff += 360;
+    // Aplicar 15% del cambio (factor de suavizado)
+    arHeadingSuavizado = (arHeadingSuavizado + diff * 0.15 + 360) % 360;
+  }
+  arHeading = arHeadingSuavizado;
+
+  // Detectar movimiento durante calibración (con heading crudo, no suavizado)
   detectarMovimientoCalibracion(heading);
 
   const brujula = document.getElementById('ar-brujula');
-  if (brujula) brujula.style.transform = `rotate(${-heading}deg)`;
+  if (brujula) brujula.style.transform = `rotate(${-arHeading}deg)`;
   const dir = document.getElementById('ar-orientacion');
   if (dir) {
-    const cardinal = ['N','NE','E','SE','S','SO','O','NO'][Math.round(heading / 45) % 8];
-    dir.textContent = cardinal + ' · ' + Math.round(heading) + '°';
+    const cardinal = ['N','NE','E','SE','S','SO','O','NO'][Math.round(arHeading / 45) % 8];
+    dir.textContent = cardinal + ' · ' + Math.round(arHeading) + '°';
   }
 
-  renderizarMarcadoresAR();
+  // THROTTLE: limitar renderizado a 20fps máximo
+  const ahora = Date.now();
+  if (ahora - arUltimoRender >= 50) {
+    arUltimoRender = ahora;
+    renderizarMarcadoresAR();
+  } else if (!arRenderPendiente) {
+    arRenderPendiente = true;
+    setTimeout(() => {
+      arUltimoRender = Date.now();
+      arRenderPendiente = false;
+      renderizarMarcadoresAR();
+    }, 50);
+  }
 }
 
 async function cargarPerrosCerca() {
@@ -4071,7 +4101,6 @@ function renderizarMarcadoresAR() {
   const screenH = window.innerHeight;
   const fovDegrees = 60;
 
-  // Track markers para reutilizar (evita re-crear con cada update)
   const idsActuales = new Set();
 
   arReportesCerca.forEach(r => {
@@ -4082,27 +4111,31 @@ function renderizarMarcadoresAR() {
     if (Math.abs(angDiff) > fovDegrees) return;
 
     const x = (angDiff / fovDegrees) * (screenW / 2) + (screenW / 2);
-    const yProporcion = Math.min(r.distancia / 5, 1);
-    const y = screenH * 0.45 - (yProporcion * 100);
 
-    // Tamaño 3D según distancia: más cerca = MUCHO más grande
+    // Tamaño 3D MUY diferenciado para que se note
     let escala;
-    if (r.distancia < 0.1) escala = 1.5;
-    else if (r.distancia < 0.3) escala = 1.25;
-    else if (r.distancia < 0.5) escala = 1.0;
-    else if (r.distancia < 1) escala = 0.85;
-    else if (r.distancia < 2) escala = 0.7;
-    else escala = 0.55;
+    if (r.distancia < 0.05) escala = 2.0;        // < 50m: ENORME
+    else if (r.distancia < 0.15) escala = 1.6;    // 50-150m: muy grande
+    else if (r.distancia < 0.3) escala = 1.3;     // 150-300m: grande
+    else if (r.distancia < 0.6) escala = 1.0;     // 300-600m: normal
+    else if (r.distancia < 1.2) escala = 0.75;    // 600m-1.2km: pequeño
+    else if (r.distancia < 2.5) escala = 0.55;    // 1.2-2.5km: muy pequeño
+    else escala = 0.4;                            // 2.5km+: tiny
+
+    // Posición Y: más cerca = MÁS ABAJO (más visible/grande), lejos = arriba
+    const yProporcion = Math.min(r.distancia / 3, 1);
+    const y = screenH * 0.55 - (yProporcion * 120);
 
     idsActuales.add(r.id);
 
-    // Reutilizar marcador si ya existe (evita re-animar)
     let marker = scene.querySelector('[data-id="' + r.id + '"]');
     if (marker) {
+      // Actualizar posición de marcador existente (suave gracias a transition)
       marker.style.left = x + 'px';
       marker.style.top = y + 'px';
       marker.style.transform = `scale(${escala})`;
     } else {
+      // Crear nuevo marcador (se anima la entrada con arMarkerEnter)
       marker = document.createElement('div');
       marker.className = 'ar-marker-3d';
       marker.style.left = x + 'px';
@@ -4134,9 +4167,13 @@ function renderizarMarcadoresAR() {
     }
   });
 
-  // Eliminar marcadores que ya no están en el campo visual
+  // Eliminar marcadores que salieron del campo visual con fade out
   scene.querySelectorAll('.ar-marker-3d').forEach(m => {
-    if (!idsActuales.has(m.dataset.id)) m.remove();
+    if (!idsActuales.has(m.dataset.id)) {
+      m.style.opacity = '0';
+      m.style.transition = 'opacity 0.3s';
+      setTimeout(() => { if (m.parentNode) m.remove(); }, 300);
+    }
   });
 }
 

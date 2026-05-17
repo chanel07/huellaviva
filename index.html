@@ -488,6 +488,13 @@ body.dark {
 </div>
 
 <div class="screen" id="screen-mapa">
+  <!-- BOTÓN FLOTANTE "VOLVER AL AR" (solo si viene del AR) -->
+  <div id="volver-ar-btn" style="display:none;position:fixed;top:60px;right:14px;z-index:9998;animation:bounceIn 0.5s ease;">
+    <button onclick="volverAlAR()" style="background:linear-gradient(135deg,#10B981,#059669);border:2px solid #fff;border-radius:24px;padding:8px 14px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 16px rgba(16,185,129,0.5);display:flex;align-items:center;gap:6px;">
+      <span style="font-size:14px;">📡</span>
+      <span>Volver al Radar AR</span>
+    </button>
+  </div>
   <div style="position:relative;">
     <div id="map"></div>
     <div style="position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:999;">
@@ -829,7 +836,13 @@ function showTab(name) {
   if (bnav) bnav.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'inicio') cargarInicio();
-  if (name === 'mapa') { cargarMapa(); cargarCards('mapa'); setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 200); }
+  if (name === 'mapa') {
+    cargarMapa();
+    cargarCards('mapa');
+    setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 200);
+    // Si veníamos del AR (después de Ver detalle), mostrar botón para volver
+    if (typeof mostrarBotonVolverAR === 'function') mostrarBotonVolverAR();
+  }
   if (name === 'perdidos') cargarCards('perdidos');
   if (name === 'encontrados') cargarCards('encontrados');
   if (name === 'adopcion') cargarCards('adopcion');
@@ -4051,6 +4064,11 @@ function mostrarFormEditar(r, modalDetalle) {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
+  @keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3) translateY(-20px); }
+    50% { opacity: 1; transform: scale(1.1) translateY(0); }
+    100% { opacity: 1; transform: scale(1); }
+  }
   .ar-fade-transition {
     transition: opacity 0.4s ease;
   }
@@ -4091,6 +4109,25 @@ let arHeadingAnterior = null;
 let arUltimoRender = 0;
 let arRenderPendiente = false;
 let arMode = 'ar'; // 'ar' o 'radar'
+
+// ============ VOLVER AL AR (cuando viene de "Ver detalle") ============
+function volverAlAR() {
+  sessionStorage.removeItem('volver_a_ar');
+  const btn = document.getElementById('volver-ar-btn');
+  if (btn) btn.style.display = 'none';
+  // Reactivar el modo AR
+  iniciarModoAR();
+}
+
+function mostrarBotonVolverAR() {
+  const btn = document.getElementById('volver-ar-btn');
+  if (!btn) return;
+  if (sessionStorage.getItem('volver_a_ar') === '1') {
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
 
 async function iniciarModoAR() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -5112,35 +5149,23 @@ function bindArButtons() {
       if (!id) return;
 
       // ASEGURAR que el reporte esté en cache global
-      // Buscarlo en arReportesCerca si no está en window._rep
       window._rep = window._rep || {};
       if (!window._rep[id]) {
         const fromAR = arReportesCerca.find(r => r.id === id);
         if (fromAR) window._rep[id] = fromAR;
       }
 
-      // Si aún así no lo encontramos, error visible
       if (!window._rep[id]) {
         alert('No se pudo cargar el detalle. Intenta nuevamente.');
         return;
       }
 
-      // Contar los hijos directos del body ANTES de abrir el detalle
-      const hijosAntes = document.body.children.length;
+      // OPCIÓN B: Cerrar AR y abrir detalle normal
+      // Marcar que veníamos del AR para mostrar botón "Volver al AR"
+      sessionStorage.setItem('volver_a_ar', '1');
 
-      // Abrir detalle SIN cerrar AR
-      verDetalle(id);
-
-      // Capturar el modal recién creado y subir su z-index
-      setTimeout(() => {
-        const hijosDespues = document.body.children;
-        for (let i = hijosAntes; i < hijosDespues.length; i++) {
-          const el = hijosDespues[i];
-          if (el && el.tagName === 'DIV') {
-            el.style.zIndex = '100000';
-          }
-        }
-      }, 30);
+      cerrarModoAR();
+      setTimeout(() => verDetalle(id), 350);
     };
   }
 }

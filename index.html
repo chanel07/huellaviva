@@ -3651,10 +3651,13 @@ function mostrarFormEditar(r, modalDetalle) {
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <button id="ar-close" style="background:rgba(0,0,0,0.6);border:1.5px solid #fff;border-radius:50%;width:42px;height:42px;color:#fff;font-size:20px;cursor:pointer;backdrop-filter:blur(10px);">✕</button>
       <div style="background:rgba(0,0,0,0.6);border:1.5px solid #EC4899;border-radius:20px;padding:8px 16px;backdrop-filter:blur(10px);">
-        <div style="color:#fff;font-size:11px;font-weight:700;font-family:Plus Jakarta Sans,sans-serif;text-align:center;">🔮 MODO AR ACTIVO</div>
+        <div style="color:#fff;font-size:11px;font-weight:700;font-family:Plus Jakarta Sans,sans-serif;text-align:center;" id="ar-mode-label">🔮 MODO AR ACTIVO</div>
         <div id="ar-status" style="color:#EC4899;font-size:13px;font-weight:800;text-align:center;font-family:Plus Jakarta Sans,sans-serif;">Buscando perros perdidos...</div>
       </div>
-      <button id="ar-share" style="background:rgba(0,0,0,0.6);border:1.5px solid #fff;border-radius:50%;width:42px;height:42px;color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(10px);">📸</button>
+      <div style="display:flex;gap:6px;">
+        <button id="ar-toggle-radar" style="background:rgba(0,0,0,0.6);border:1.5px solid #10B981;border-radius:50%;width:42px;height:42px;color:#10B981;font-size:18px;cursor:pointer;backdrop-filter:blur(10px);">🔄</button>
+        <button id="ar-share" style="background:rgba(0,0,0,0.6);border:1.5px solid #fff;border-radius:50%;width:42px;height:42px;color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(10px);">📸</button>
+      </div>
     </div>
   </div>
 
@@ -3688,11 +3691,72 @@ function mostrarFormEditar(r, modalDetalle) {
   </div>
 
   <!-- Mira central (estilo cámara/AR) -->
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;border:2px solid rgba(236,72,153,0.4);border-radius:50%;pointer-events:none;z-index:5;">
+  <div id="ar-mira" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;border:2px solid rgba(236,72,153,0.4);border-radius:50%;pointer-events:none;z-index:5;">
     <div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:2px;height:12px;background:rgba(236,72,153,0.8);"></div>
     <div style="position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:2px;height:12px;background:rgba(236,72,153,0.8);"></div>
     <div style="position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:12px;height:2px;background:rgba(236,72,153,0.8);"></div>
     <div style="position:absolute;right:-1px;top:50%;transform:translateY(-50%);width:12px;height:2px;background:rgba(236,72,153,0.8);"></div>
+  </div>
+
+  <!-- ============ CAPA MODO RADAR ============ -->
+  <div id="ar-radar-layer" style="display:none;position:absolute;inset:0;z-index:7;pointer-events:none;">
+    <!-- Filtro verde sobre la cámara -->
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at center, rgba(16,185,129,0.15) 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.85) 100%);"></div>
+
+    <!-- Líneas de coordenadas (cruz central) -->
+    <svg style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="none">
+      <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(16,185,129,0.25)" stroke-width="1" stroke-dasharray="6,8"/>
+      <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(16,185,129,0.25)" stroke-width="1" stroke-dasharray="6,8"/>
+    </svg>
+
+    <!-- Círculo radar central con ondas concéntricas -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80vw;max-width:340px;height:80vw;max-height:340px;pointer-events:none;">
+      <!-- Círculos fijos del radar -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(16,185,129,0.4)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(16,185,129,0.35)" stroke-width="1" stroke-dasharray="3,3"/>
+        <circle cx="100" cy="100" r="45" fill="none" stroke="rgba(16,185,129,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+        <circle cx="100" cy="100" r="20" fill="none" stroke="rgba(16,185,129,0.5)" stroke-width="1.5"/>
+        <!-- Marcas cardinales -->
+        <text x="100" y="10" fill="rgba(16,185,129,0.8)" font-size="10" font-weight="700" text-anchor="middle" font-family="monospace">N</text>
+        <text x="100" y="198" fill="rgba(16,185,129,0.6)" font-size="10" font-weight="700" text-anchor="middle" font-family="monospace">S</text>
+        <text x="194" y="103" fill="rgba(16,185,129,0.6)" font-size="10" font-weight="700" text-anchor="middle" font-family="monospace">E</text>
+        <text x="6" y="103" fill="rgba(16,185,129,0.6)" font-size="10" font-weight="700" text-anchor="middle" font-family="monospace">O</text>
+        <!-- Línea de barrido que rota -->
+        <g id="radar-sweep" style="transform-origin:100px 100px;">
+          <defs>
+            <linearGradient id="sweepGradient" x1="100" y1="100" x2="100" y2="5" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(16,185,129,1)"/>
+              <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+            </linearGradient>
+            <linearGradient id="sweepFill" x1="100" y1="100" x2="100" y2="5" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="rgba(16,185,129,0.4)"/>
+              <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+            </linearGradient>
+          </defs>
+          <path d="M 100 100 L 100 5 A 95 95 0 0 1 175 50 Z" fill="url(#sweepFill)"/>
+          <line x1="100" y1="100" x2="100" y2="5" stroke="url(#sweepGradient)" stroke-width="2"/>
+        </g>
+      </svg>
+
+      <!-- Ondas de pulso radial expandiéndose -->
+      <div class="radar-pulse" style="animation-delay:0s;"></div>
+      <div class="radar-pulse" style="animation-delay:1s;"></div>
+      <div class="radar-pulse" style="animation-delay:2s;"></div>
+
+      <!-- Punto central (tú) -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;background:#10B981;border-radius:50%;box-shadow:0 0 16px #10B981, 0 0 4px #fff inset;animation:radarCentralPulse 1.5s ease-in-out infinite;"></div>
+
+      <!-- Contenedor para los blips (perros) -->
+      <div id="radar-blips" style="position:absolute;inset:0;"></div>
+    </div>
+
+    <!-- Texto info radar -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%, calc(40vw + 30px));max-width:280px;text-align:center;pointer-events:none;">
+      <div style="background:rgba(0,0,0,0.7);border:1px solid #10B981;border-radius:8px;padding:6px 14px;display:inline-block;backdrop-filter:blur(10px);">
+        <div style="color:#10B981;font-size:10px;font-weight:800;font-family:monospace;letter-spacing:2px;" id="radar-info">📡 ESCANEANDO ZONA...</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3790,6 +3854,73 @@ function mostrarFormEditar(r, modalDetalle) {
     border-radius: 50%;
     animation: arRingPulse 2s ease-out infinite;
   }
+  /* RADAR MODE STYLES */
+  @keyframes radarSweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes radarPulseExpand {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  @keyframes radarCentralPulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); box-shadow: 0 0 16px #10B981, 0 0 4px #fff inset; }
+    50% { transform: translate(-50%,-50%) scale(1.4); box-shadow: 0 0 28px #10B981, 0 0 4px #fff inset; }
+  }
+  @keyframes blipPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 14px #10B981; }
+    50% { transform: scale(1.5); box-shadow: 0 0 24px #10B981, 0 0 8px #10B981; }
+  }
+  @keyframes blipAppear {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.5); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .radar-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%,-50%) scale(0);
+    border: 2px solid #10B981;
+    border-radius: 50%;
+    animation: radarPulseExpand 3s ease-out infinite;
+    box-shadow: 0 0 20px rgba(16,185,129,0.4);
+  }
+  #radar-sweep {
+    animation: radarSweep 4s linear infinite;
+  }
+  .radar-blip {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    background: #10B981;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #10B981;
+    animation: blipAppear 0.4s ease-out, blipPulse 1.5s ease-in-out infinite 0.4s;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .radar-blip-label {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    border: 1px solid #10B981;
+    color: #10B981;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    font-family: monospace;
+    white-space: nowrap;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
 </style>
 
 <script>
@@ -3809,6 +3940,7 @@ let arCalibracionMovimientos = 0;
 let arHeadingAnterior = null;
 let arUltimoRender = 0;
 let arRenderPendiente = false;
+let arMode = 'ar'; // 'ar' o 'radar'
 
 async function iniciarModoAR() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -3962,13 +4094,15 @@ function handleOrientation(event) {
   const ahora = Date.now();
   if (ahora - arUltimoRender >= 50) {
     arUltimoRender = ahora;
-    renderizarMarcadoresAR();
+    if (arMode === 'radar') renderizarRadar();
+    else renderizarMarcadoresAR();
   } else if (!arRenderPendiente) {
     arRenderPendiente = true;
     setTimeout(() => {
       arUltimoRender = Date.now();
       arRenderPendiente = false;
-      renderizarMarcadoresAR();
+      if (arMode === 'radar') renderizarRadar();
+      else renderizarMarcadoresAR();
     }, 50);
   }
 }
@@ -3994,7 +4128,8 @@ async function cargarPerrosCerca() {
       : '¡' + arReportesCerca.length + ' perro' + (arReportesCerca.length>1?'s':'') + ' cerca!';
 
     actualizarListaAR();
-    renderizarMarcadoresAR();
+    if (arMode === 'radar') renderizarRadar();
+    else renderizarMarcadoresAR();
     actualizarProximidad();
   } catch(e) {
     console.error(e);
@@ -4211,9 +4346,9 @@ function iniciarTrackingAR() {
         distancia: distanciaKm(arUserPos.lat, arUserPos.lng, r.lat, r.lng),
         bearing: calcularBearing(arUserPos.lat, arUserPos.lng, r.lat, r.lng)
       }));
-      // Re-ordenar por cercanía
       arReportesCerca.sort((a, b) => a.distancia - b.distancia);
-      renderizarMarcadoresAR();
+      if (arMode === 'radar') renderizarRadar();
+      else renderizarMarcadoresAR();
       actualizarProximidad();
     },
     null,
@@ -4221,12 +4356,136 @@ function iniciarTrackingAR() {
   );
 }
 
+// ============ TOGGLE AR / RADAR ============
+function toggleModoRadar() {
+  arMode = (arMode === 'ar') ? 'radar' : 'ar';
+  const radarLayer = document.getElementById('ar-radar-layer');
+  const arScene = document.getElementById('ar-scene');
+  const arMira = document.getElementById('ar-mira');
+  const arProx = document.getElementById('ar-proximidad');
+  const arBrujula = document.getElementById('ar-brujula');
+  const arVideo = document.getElementById('ar-video');
+  const modeLabel = document.getElementById('ar-mode-label');
+  const toggleBtn = document.getElementById('ar-toggle-radar');
+
+  if (arMode === 'radar') {
+    // Activar Radar
+    radarLayer.style.display = 'block';
+    if (arScene) arScene.style.display = 'none';
+    if (arMira) arMira.style.display = 'none';
+    if (arProx) arProx.style.display = 'none';
+    if (arVideo) arVideo.style.opacity = '0.35';
+    if (modeLabel) modeLabel.textContent = '📡 MODO RADAR ACTIVO';
+    if (toggleBtn) {
+      toggleBtn.style.background = '#10B981';
+      toggleBtn.style.color = '#fff';
+      toggleBtn.textContent = '🔮';
+    }
+    renderizarRadar();
+  } else {
+    // Volver a AR
+    radarLayer.style.display = 'none';
+    if (arScene) arScene.style.display = 'block';
+    if (arMira) arMira.style.display = 'block';
+    if (arVideo) arVideo.style.opacity = '1';
+    if (modeLabel) modeLabel.textContent = '🔮 MODO AR ACTIVO';
+    if (toggleBtn) {
+      toggleBtn.style.background = 'rgba(0,0,0,0.6)';
+      toggleBtn.style.color = '#10B981';
+      toggleBtn.textContent = '🔄';
+    }
+    // Reactivar proximidad si hay perros
+    if (arReportesCerca && arReportesCerca.length > 0 && arProx) {
+      arProx.style.display = 'block';
+    }
+    renderizarMarcadoresAR();
+  }
+}
+
+function renderizarRadar() {
+  const blips = document.getElementById('radar-blips');
+  const info = document.getElementById('radar-info');
+  if (!blips) return;
+
+  // Track ids actuales para reutilizar blips
+  const idsActuales = new Set();
+
+  if (!arReportesCerca || arReportesCerca.length === 0) {
+    blips.innerHTML = '';
+    if (info) info.textContent = '📡 SIN OBJETIVOS DETECTADOS';
+    return;
+  }
+
+  if (info) info.textContent = '📡 ' + arReportesCerca.length + ' OBJETIVO' + (arReportesCerca.length>1?'S':'') + ' DETECTADO' + (arReportesCerca.length>1?'S':'');
+
+  // El radar tiene radio máx de 5km (mismo que filtro)
+  // El círculo del radar es 50% del contenedor (con padding visual)
+  // Centro = el usuario
+
+  arReportesCerca.forEach(r => {
+    // Calcular posición relativa al usuario en el radar
+    // bearing es ángulo desde el usuario (0=N, 90=E, etc)
+    // Restamos arHeading para rotar el radar según hacia dónde mira el usuario
+    let angRel = r.bearing - arHeading;
+    while (angRel > 180) angRel -= 360;
+    while (angRel < -180) angRel += 360;
+
+    // Convertir a radianes (0 = arriba en el radar = norte ajustado)
+    const angRad = angRel * Math.PI / 180;
+
+    // Distancia normalizada (0 = centro, 1 = borde)
+    const distNorm = Math.min(r.distancia / 5, 1);
+    // Usar potencia para que los cercanos no estén pegados al centro
+    const distVisual = Math.pow(distNorm, 0.7);
+
+    // Coordenadas en el radar (% del contenedor)
+    // Radio del radar visible: 45% del contenedor (para que quepan en el círculo)
+    const radioMax = 45;
+    const x = 50 + Math.sin(angRad) * distVisual * radioMax;
+    const y = 50 - Math.cos(angRad) * distVisual * radioMax;
+
+    idsActuales.add(r.id);
+
+    let blip = blips.querySelector('[data-id="' + r.id + '"]');
+    if (blip) {
+      blip.style.left = x + '%';
+      blip.style.top = y + '%';
+    } else {
+      blip = document.createElement('div');
+      blip.className = 'radar-blip';
+      blip.style.left = x + '%';
+      blip.style.top = y + '%';
+      blip.dataset.id = r.id;
+
+      const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'TARGET';
+      const dist = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'M' : r.distancia.toFixed(1) + 'KM';
+
+      blip.innerHTML = `<div class="radar-blip-label">${nombre.toUpperCase().substring(0,12)} · ${dist}</div>`;
+
+      blip.onclick = () => {
+        cerrarModoAR();
+        setTimeout(() => verDetalle(r.id), 300);
+      };
+      blips.appendChild(blip);
+    }
+  });
+
+  // Eliminar blips que ya no están
+  blips.querySelectorAll('.radar-blip').forEach(b => {
+    if (!idsActuales.has(b.dataset.id)) {
+      b.style.opacity = '0';
+      setTimeout(() => { if (b.parentNode) b.remove(); }, 300);
+    }
+  });
+}
+
 // ============ COMPARTIR / CAPTURA ============
 async function compartirVistaAR() {
   try {
+    const modoTexto = arMode === 'radar' ? '📡 Modo Radar' : '🔮 Modo AR';
     const mensaje = arReportesCerca.length > 0
-      ? '🔮 Acabo de detectar ' + arReportesCerca.length + ' perro' + (arReportesCerca.length>1?'s':'') + ' perdido' + (arReportesCerca.length>1?'s':'') + ' cerca de mí usando el Modo AR de HuellaViva. ¡Es como Pokémon Go pero para salvar perritos! 🐾'
-      : '🔮 Probé el Modo AR de HuellaViva - es como Pokémon Go pero para encontrar perros perdidos en Santa Marta. 🐾';
+      ? modoTexto + ' de HuellaViva detectó ' + arReportesCerca.length + ' perro' + (arReportesCerca.length>1?'s':'') + ' perdido' + (arReportesCerca.length>1?'s':'') + ' cerca de mí. ¡Es como Pokémon Go pero para salvar perritos en Santa Marta! 🐾'
+      : 'Probé el ' + modoTexto + ' de HuellaViva - es como un radar militar pero para encontrar perros perdidos en Santa Marta. 🐾';
     const texto = mensaje + '\n\nhttps://huellavivaapp.com';
 
     if (navigator.share) {
@@ -4267,9 +4526,28 @@ function cerrarModoAR() {
   arHeadingAnterior = null;
   arCalibrado = false;
   arCalibracionMovimientos = 0;
+  arMode = 'ar';
   document.getElementById('ar-overlay').style.display = 'none';
   document.getElementById('ar-scene').innerHTML = '';
   document.getElementById('ar-proximidad').style.display = 'none';
+  const blips = document.getElementById('radar-blips');
+  if (blips) blips.innerHTML = '';
+  const radarLayer = document.getElementById('ar-radar-layer');
+  if (radarLayer) radarLayer.style.display = 'none';
+  const arScene = document.getElementById('ar-scene');
+  if (arScene) arScene.style.display = 'block';
+  const arMira = document.getElementById('ar-mira');
+  if (arMira) arMira.style.display = 'block';
+  const arVideo = document.getElementById('ar-video');
+  if (arVideo) arVideo.style.opacity = '1';
+  const modeLabel = document.getElementById('ar-mode-label');
+  if (modeLabel) modeLabel.textContent = '🔮 MODO AR ACTIVO';
+  const toggleBtn = document.getElementById('ar-toggle-radar');
+  if (toggleBtn) {
+    toggleBtn.style.background = 'rgba(0,0,0,0.6)';
+    toggleBtn.style.color = '#10B981';
+    toggleBtn.textContent = '🔄';
+  }
   const cal = document.getElementById('ar-calibracion');
   if (cal) cal.style.display = 'none';
 }
@@ -4280,6 +4558,8 @@ function bindArButtons() {
   if (btnClose) btnClose.onclick = cerrarModoAR;
   const btnShare = document.getElementById('ar-share');
   if (btnShare) btnShare.onclick = compartirVistaAR;
+  const btnToggle = document.getElementById('ar-toggle-radar');
+  if (btnToggle) btnToggle.onclick = toggleModoRadar;
 }
 
 if (document.readyState === 'loading') {

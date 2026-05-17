@@ -500,15 +500,38 @@ body.dark {
     </div>
     <!-- BOTÓN BUSCAR SIMILAR CON IA + AR APILADOS (columna izquierda) -->
     <div style="position:absolute;bottom:16px;left:16px;display:flex;flex-direction:column;align-items:center;gap:10px;z-index:999;">
-      <!-- BOTÓN AR - MODO POKEMON GO (arriba) -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-        <div style="background:#fff;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:#EC4899;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.15);">🔮 Modo AR</div>
-        <div style="position:relative;width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
-          <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(236,72,153,0.5);animation:radar-express 2s ease-out infinite;"></div>
-          <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(236,72,153,0.3);animation:radar-express 2s ease-out infinite 0.6s;"></div>
-          <button onclick="iniciarModoAR()" style="width:56px;height:56px;background:linear-gradient(135deg,#EC4899,#7C3AED,#3B82F6);border:none;border-radius:50%;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(236,72,153,0.5);position:relative;z-index:1;color:#fff;">🔮</button>
-        </div>
-      </div>
+      <!-- BOTÓN AR - MODO RADAR (arriba, sin etiqueta tapable) -->
+      <button onclick="iniciarModoAR()" title="Modo AR / Radar" style="position:relative;width:56px;height:56px;background:radial-gradient(circle, #064E3B 0%, #022C22 100%);border:2px solid #10B981;border-radius:50%;cursor:pointer;box-shadow:0 4px 20px rgba(16,185,129,0.6), 0 0 24px rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;padding:0;overflow:visible;">
+        <!-- Ondas externas animadas -->
+        <span style="position:absolute;inset:-8px;border:2px solid rgba(16,185,129,0.6);border-radius:50%;animation:btn-ar-pulse 2s ease-out infinite;pointer-events:none;"></span>
+        <span style="position:absolute;inset:-8px;border:2px solid rgba(16,185,129,0.4);border-radius:50%;animation:btn-ar-pulse 2s ease-out infinite 0.7s;pointer-events:none;"></span>
+        <!-- SVG radar dentro -->
+        <svg width="36" height="36" viewBox="0 0 36 36" style="display:block;">
+          <!-- Círculos del radar -->
+          <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(16,185,129,0.4)" stroke-width="1"/>
+          <circle cx="18" cy="18" r="11" fill="none" stroke="rgba(16,185,129,0.5)" stroke-width="1" stroke-dasharray="2,2"/>
+          <circle cx="18" cy="18" r="6" fill="none" stroke="rgba(16,185,129,0.6)" stroke-width="1" stroke-dasharray="2,2"/>
+          <!-- Línea de barrido que rota -->
+          <g style="transform-origin:18px 18px;animation:btn-ar-sweep 3s linear infinite;">
+            <defs>
+              <linearGradient id="btnArSweep" x1="18" y1="18" x2="18" y2="2" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="rgba(16,185,129,1)"/>
+                <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+              </linearGradient>
+              <linearGradient id="btnArFill" x1="18" y1="18" x2="18" y2="2" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="rgba(16,185,129,0.5)"/>
+                <stop offset="100%" stop-color="rgba(16,185,129,0)"/>
+              </linearGradient>
+            </defs>
+            <path d="M 18 18 L 18 2 A 16 16 0 0 1 30 8 Z" fill="url(#btnArFill)"/>
+            <line x1="18" y1="18" x2="18" y2="2" stroke="url(#btnArSweep)" stroke-width="1.5"/>
+          </g>
+          <!-- Punto central -->
+          <circle cx="18" cy="18" r="2.5" fill="#10B981">
+            <animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </button>
       <!-- BOTÓN BUSCAR IA (abajo) -->
       <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
         <div style="background:#fff;border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:#7C3AED;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.15);">🔍 Buscar IA</div>
@@ -3686,18 +3709,18 @@ function mostrarFormEditar(r, modalDetalle) {
   </div>
 
   <!-- TARJETA INFO PERRO (al tocar un marcador/blip) -->
-  <div id="ar-info-perro" style="display:none;position:absolute;left:14px;right:14px;bottom:90px;z-index:50;background:rgba(0,0,0,0.92);border:2px solid #EC4899;border-radius:18px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.6);max-width:480px;margin:auto;">
+  <div id="ar-info-perro" style="display:none;position:absolute;left:14px;right:14px;top:50%;transform:translateY(-50%);z-index:80;background:rgba(0,0,0,0.95);border:2px solid #EC4899;border-radius:18px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.8), 0 0 24px rgba(236,72,153,0.3);max-width:420px;margin:auto;">
     <div style="display:flex;gap:12px;align-items:center;">
-      <div id="ar-info-foto" style="width:64px;height:64px;border-radius:14px;border:2px solid #EC4899;overflow:hidden;flex-shrink:0;background:#1F2937;box-shadow:0 0 12px rgba(236,72,153,0.5);"></div>
+      <div id="ar-info-foto" style="width:72px;height:72px;border-radius:14px;border:2px solid #EC4899;overflow:hidden;flex-shrink:0;background:#1F2937;box-shadow:0 0 12px rgba(236,72,153,0.5);"></div>
       <div style="flex:1;min-width:0;">
-        <div id="ar-info-nombre" style="color:#fff;font-size:16px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:2px;">--</div>
-        <div id="ar-info-detalles" style="color:#EC4899;font-size:11px;font-weight:600;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:4px;">--</div>
+        <div id="ar-info-nombre" style="color:#fff;font-size:17px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:3px;">--</div>
+        <div id="ar-info-detalles" style="color:#EC4899;font-size:12px;font-weight:600;font-family:Plus Jakarta Sans,sans-serif;margin-bottom:5px;">--</div>
         <div id="ar-info-distancia" style="display:inline-block;background:#EC4899;color:#fff;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;">--</div>
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px;">
-      <button id="ar-info-cerrar" style="flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">↩ Seguir buscando</button>
-      <button id="ar-info-detalle" style="flex:1;background:linear-gradient(135deg,#EC4899,#7C3AED);border:none;color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Ver detalle →</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="ar-info-cerrar" style="flex:1;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">↩ Seguir buscando</button>
+      <button id="ar-info-detalle" style="flex:1;background:linear-gradient(135deg,#EC4899,#7C3AED);border:none;color:#fff;border-radius:10px;padding:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Ver detalle →</button>
     </div>
   </div>
 
@@ -4012,6 +4035,14 @@ function mostrarFormEditar(r, modalDetalle) {
   @keyframes calorPulse {
     0%, 100% { box-shadow: 0 0 12px #10B981, 0 0 24px rgba(16,185,129,0.5); }
     50% { box-shadow: 0 0 24px #EF4444, 0 0 40px rgba(239,68,68,0.8); }
+  }
+  @keyframes btn-ar-pulse {
+    0% { transform: scale(0.95); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+  @keyframes btn-ar-sweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
   .ar-fade-transition {
     transition: opacity 0.4s ease;
@@ -4654,6 +4685,38 @@ function mostrarInfoPerroAR(perro) {
 
   card.dataset.perroId = perro.id;
   card.style.display = 'block';
+
+  // Ocultar elementos inferiores para que la tarjeta sea LA protagonista
+  ocultarHUDInferior(true);
+}
+
+function ocultarHUDInferior(ocultar) {
+  // El radar inferior es el div que tiene "Perros detectados cerca:"
+  // Lo identificamos buscando el contenedor del ar-lista
+  const lista = document.getElementById('ar-lista');
+  if (lista) {
+    // Subir hasta el contenedor padre del radar inferior
+    const radarInferior = lista.closest('div[style*="bottom:16px"]');
+    if (radarInferior) {
+      radarInferior.style.transition = 'opacity 0.25s ease';
+      radarInferior.style.opacity = ocultar ? '0' : '1';
+      radarInferior.style.pointerEvents = ocultar ? 'none' : 'auto';
+    }
+  }
+  // También ocultar flecha y mini-mapa cuando hay tarjeta
+  const flecha = document.getElementById('ar-objetivo-flecha');
+  if (flecha && ocultar && flecha.style.display !== 'none') {
+    flecha.dataset.estabaVisible = '1';
+    flecha.style.display = 'none';
+  } else if (flecha && !ocultar && flecha.dataset.estabaVisible === '1') {
+    flecha.style.display = 'block';
+    flecha.dataset.estabaVisible = '';
+  }
+  const proximidad = document.getElementById('ar-proximidad');
+  if (proximidad) {
+    proximidad.style.transition = 'opacity 0.25s ease';
+    proximidad.style.opacity = ocultar ? '0' : '1';
+  }
 }
 
 function cerrarInfoPerroAR() {
@@ -4662,6 +4725,8 @@ function cerrarInfoPerroAR() {
     card.style.display = 'none';
     card.dataset.perroId = '';
   }
+  // Restaurar HUD inferior
+  ocultarHUDInferior(false);
 }
 
 // ============ TOGGLE AR / RADAR ============
@@ -4968,10 +5033,18 @@ function cerrarModoAR() {
   const miniBlips = document.getElementById('ar-mini-blips');
   if (miniBlips) miniBlips.innerHTML = '';
   const flecha = document.getElementById('ar-objetivo-flecha');
-  if (flecha) flecha.style.display = 'none';
+  if (flecha) { flecha.style.display = 'none'; flecha.dataset.estabaVisible = ''; }
   // Resetear tarjeta info perro
   const infoCard = document.getElementById('ar-info-perro');
   if (infoCard) { infoCard.style.display = 'none'; infoCard.dataset.perroId = ''; }
+  // Restaurar opacidad del HUD inferior
+  const lista = document.getElementById('ar-lista');
+  if (lista) {
+    const radarInf = lista.closest('div[style*="bottom:16px"]');
+    if (radarInf) { radarInf.style.opacity = '1'; radarInf.style.pointerEvents = 'auto'; }
+  }
+  const prox = document.getElementById('ar-proximidad');
+  if (prox) prox.style.opacity = '1';
 }
 
 // Bind listeners de botones

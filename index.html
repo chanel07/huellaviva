@@ -3884,6 +3884,9 @@ function mostrarFormEditar(r, modalDetalle) {
     transform-origin: center bottom;
     will-change: transform, left, top;
   }
+  .ar-marker-3d * {
+    pointer-events: none;
+  }
   .ar-marker-photo {
     width: 80px;
     height: 80px;
@@ -3981,6 +3984,9 @@ function mostrarFormEditar(r, modalDetalle) {
     cursor: pointer;
     z-index: 10;
     transition: left 0.3s ease-out, top 0.3s ease-out, transform 0.3s ease-out;
+  }
+  .radar-blip * {
+    pointer-events: none;
   }
   .radar-blip-foto {
     width: 100%;
@@ -4114,6 +4120,9 @@ async function iniciarModoAR() {
   document.getElementById('ar-loading-status').textContent = 'Pidiendo permiso de cámara...';
   arCalibrado = false;
   arCalibracionMovimientos = 0;
+
+  // Rebindear botones cada vez que se abre AR (más robusto)
+  bindArButtons();
 
   try {
     arStream = await navigator.mediaDevices.getUserMedia({
@@ -4455,14 +4464,14 @@ function renderizarMarcadoresAR() {
       const distTexto = r.distancia < 1
         ? Math.round(r.distancia * 1000) + 'm'
         : r.distancia.toFixed(1) + 'km';
-      const fotoSrc = r.foto_url || '';
+      const fotoSrc = optimizarFotoAR(r.foto_url, 160);
       const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'Perro perdido';
 
       marker.innerHTML = `
         <div style="position:relative;display:inline-block;">
           <div class="ar-marker-ring"></div>
           <div class="ar-marker-photo">
-            ${fotoSrc ? `<img class="ar-marker-photo-img" src="${fotoSrc}" alt="${nombre}"/>` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🐕</div>'}
+            ${fotoSrc ? `<img class="ar-marker-photo-img" src="${fotoSrc}" alt="${nombre}" loading="eager" decoding="async"/>` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🐕</div>'}
           </div>
         </div>
         <div class="ar-marker-label">🚨 ${nombre}</div>
@@ -4587,7 +4596,8 @@ function actualizarListaAR() {
   lista.innerHTML = arReportesCerca.map((r, idx) => {
     const dist = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'm' : r.distancia.toFixed(1) + 'km';
     const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'NN';
-    const foto = r.foto_url ? `<img src="${r.foto_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid #EC4899;"/>` : '<div style="width:40px;height:40px;border-radius:50%;background:#EF4444;display:flex;align-items:center;justify-content:center;font-size:20px;">🐕</div>';
+    const fotoOpt = optimizarFotoAR(r.foto_url, 80);
+    const foto = fotoOpt ? `<img src="${fotoOpt}" loading="eager" decoding="async" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid #EC4899;"/>` : '<div style="width:40px;height:40px;border-radius:50%;background:#EF4444;display:flex;align-items:center;justify-content:center;font-size:20px;">🐕</div>';
     return `
       <div data-ar-idx="${idx}" style="flex-shrink:0;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);border-radius:12px;padding:6px 10px;cursor:pointer;border:1px solid rgba(236,72,153,0.5);">
         ${foto}
@@ -4652,6 +4662,19 @@ function iniciarTrackingAR() {
 }
 
 // ============ TARJETA INFO DENTRO DE AR ============
+// Helper para optimizar fotos de Cloudinary (las reduce a tamaño chico para AR)
+function optimizarFotoAR(url, size) {
+  if (!url) return url;
+  size = size || 120;
+  // Si es URL de Cloudinary, le ponemos transformación on-the-fly
+  if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+    // Si ya tiene transformación, no la duplicamos
+    if (url.match(/\/upload\/[^/]*[wch]_\d+/)) return url;
+    return url.replace('/upload/', '/upload/c_fill,g_auto,w_' + size + ',h_' + size + ',q_auto,f_auto/');
+  }
+  return url;
+}
+
 function mostrarInfoPerroAR(perro) {
   if (!perro) return;
   const card = document.getElementById('ar-info-perro');
@@ -4925,8 +4948,9 @@ function renderizarRadar() {
       const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'TARGET';
       const dist = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'M' : r.distancia.toFixed(1) + 'KM';
 
-      const fotoHtml = r.foto_url
-        ? '<img src="' + r.foto_url + '" alt="' + nombre + '" onerror="this.parentElement.innerHTML=\'<div class=&quot;radar-blip-foto-fallback&quot;>🐕</div>\'"/>'
+      const fotoOptimizada = optimizarFotoAR(r.foto_url, 100);
+      const fotoHtml = fotoOptimizada
+        ? '<img src="' + fotoOptimizada + '" alt="' + nombre + '" loading="eager" decoding="async" onerror="this.parentElement.innerHTML=\'<div class=&quot;radar-blip-foto-fallback&quot;>🐕</div>\'"/>'
         : '<div class="radar-blip-foto-fallback">🐕</div>';
 
       const animacionFoto = muyCerca ? 'calorPulse 1s ease-in-out infinite' : 'blipFotoPulse 1.5s ease-in-out infinite';
@@ -5064,19 +5088,25 @@ function bindArButtons() {
     btnInfoDetalle.onclick = () => {
       const card = document.getElementById('ar-info-perro');
       const id = card ? card.dataset.perroId : '';
-      if (id) {
-        // Abrir detalle SIN cerrar AR — el modal aparece encima
-        verDetalle(id);
-        // Subir el z-index del modal recién creado para que aparezca por encima del AR
-        setTimeout(() => {
-          const modales = document.querySelectorAll('body > div[style*="z-index:9999"]');
-          // Tomar el último modal creado
-          if (modales.length > 0) {
-            const ultimo = modales[modales.length - 1];
-            ultimo.style.zIndex = '100000';
+      if (!id) return;
+
+      // Contar los hijos directos del body ANTES de abrir el detalle
+      const hijosAntes = document.body.children.length;
+
+      // Abrir detalle SIN cerrar AR
+      verDetalle(id);
+
+      // Capturar el modal recién creado y subir su z-index
+      setTimeout(() => {
+        const hijosDespues = document.body.children;
+        // Tomar todos los hijos que se agregaron después
+        for (let i = hijosAntes; i < hijosDespues.length; i++) {
+          const el = hijosDespues[i];
+          if (el && el.tagName === 'DIV') {
+            el.style.zIndex = '100000';
           }
-        }, 50);
-      }
+        }
+      }, 30);
     };
   }
 }

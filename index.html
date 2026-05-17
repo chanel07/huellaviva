@@ -4294,6 +4294,11 @@ async function cargarPerrosCerca() {
   try {
     const data = await supabase('GET', 'reportes?activo=eq.true&tipo=eq.perdido');
     if (!arUserPos) return;
+
+    // CRÍTICO: Agregar al cache global para que verDetalle los encuentre
+    window._rep = window._rep || {};
+    (data || []).forEach(r => { window._rep[r.id] = r; });
+
     arReportesCerca = (data || [])
       .filter(r => r.lat && r.lng)
       .map(r => {
@@ -4314,6 +4319,16 @@ async function cargarPerrosCerca() {
     if (arMode === 'radar') renderizarRadar();
     else renderizarMarcadoresAR();
     actualizarProximidad();
+
+    // PRE-CARGAR fotos en background para que ya estén cacheadas cuando rendericen
+    arReportesCerca.forEach(r => {
+      if (r.foto_url) {
+        const img1 = new Image();
+        img1.src = optimizarFotoAR(r.foto_url, 160); // tamaño marcador AR
+        const img2 = new Image();
+        img2.src = optimizarFotoAR(r.foto_url, 100); // tamaño blip radar
+      }
+    });
   } catch(e) {
     console.error(e);
     document.getElementById('ar-status').textContent = 'Error cargando datos';
@@ -4664,14 +4679,20 @@ function iniciarTrackingAR() {
 // ============ TARJETA INFO DENTRO DE AR ============
 // Helper para optimizar fotos de Cloudinary (las reduce a tamaño chico para AR)
 function optimizarFotoAR(url, size) {
-  if (!url) return url;
+  if (!url) return '';
   size = size || 120;
-  // Si es URL de Cloudinary, le ponemos transformación on-the-fly
-  if (url.includes('cloudinary.com') && url.includes('/upload/')) {
-    // Si ya tiene transformación, no la duplicamos
-    if (url.match(/\/upload\/[^/]*[wch]_\d+/)) return url;
-    return url.replace('/upload/', '/upload/c_fill,g_auto,w_' + size + ',h_' + size + ',q_auto,f_auto/');
+
+  // Si es URL de Cloudinary
+  if (url.indexOf('cloudinary.com') !== -1 && url.indexOf('/upload/') !== -1) {
+    // Si YA tiene una transformación, la respetamos y solo cambiamos el tamaño si es muy grande
+    if (url.match(/\/upload\/[^/]*[wch]_\d+/)) {
+      return url;
+    }
+    // Aplicar transformación de tamaño + calidad auto + formato auto
+    return url.replace('/upload/', '/upload/c_fill,g_auto,w_' + size + ',h_' + size + ',q_auto:low,f_auto/');
   }
+
+  // No es Cloudinary, devolver tal cual (no podemos optimizar)
   return url;
 }
 
@@ -5090,6 +5111,20 @@ function bindArButtons() {
       const id = card ? card.dataset.perroId : '';
       if (!id) return;
 
+      // ASEGURAR que el reporte esté en cache global
+      // Buscarlo en arReportesCerca si no está en window._rep
+      window._rep = window._rep || {};
+      if (!window._rep[id]) {
+        const fromAR = arReportesCerca.find(r => r.id === id);
+        if (fromAR) window._rep[id] = fromAR;
+      }
+
+      // Si aún así no lo encontramos, error visible
+      if (!window._rep[id]) {
+        alert('No se pudo cargar el detalle. Intenta nuevamente.');
+        return;
+      }
+
       // Contar los hijos directos del body ANTES de abrir el detalle
       const hijosAntes = document.body.children.length;
 
@@ -5099,7 +5134,6 @@ function bindArButtons() {
       // Capturar el modal recién creado y subir su z-index
       setTimeout(() => {
         const hijosDespues = document.body.children;
-        // Tomar todos los hijos que se agregaron después
         for (let i = hijosAntes; i < hijosDespues.length; i++) {
           const el = hijosDespues[i];
           if (el && el.tagName === 'DIV') {

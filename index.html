@@ -3931,6 +3931,7 @@ function mostrarFormEditar(r, modalDetalle) {
     border: 3px solid rgba(236,72,153,0.6);
     border-radius: 50%;
     animation: arRingPulse 2s ease-out infinite;
+    pointer-events: none;
   }
   /* RADAR MODE STYLES */
   @keyframes radarSweep {
@@ -5064,8 +5065,17 @@ function bindArButtons() {
       const card = document.getElementById('ar-info-perro');
       const id = card ? card.dataset.perroId : '';
       if (id) {
-        cerrarModoAR();
-        setTimeout(() => verDetalle(id), 300);
+        // Abrir detalle SIN cerrar AR — el modal aparece encima
+        verDetalle(id);
+        // Subir el z-index del modal recién creado para que aparezca por encima del AR
+        setTimeout(() => {
+          const modales = document.querySelectorAll('body > div[style*="z-index:9999"]');
+          // Tomar el último modal creado
+          if (modales.length > 0) {
+            const ultimo = modales[modales.length - 1];
+            ultimo.style.zIndex = '100000';
+          }
+        }, 50);
       }
     };
   }

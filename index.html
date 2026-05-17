@@ -3616,7 +3616,17 @@ function mostrarFormEditar(r, modalDetalle) {
 <!-- ============ OVERLAY AR / MODO POKEMON GO ============ -->
 <div id="ar-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#000;overflow:hidden;">
   <!-- Video de cámara (fondo) -->
-  <video id="ar-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
+  <video id="ar-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transition:opacity 0.4s ease;"></video>
+
+  <!-- PANTALLA DE CARGA INICIAL -->
+  <div id="ar-loading" style="position:absolute;inset:0;background:rgba(0,0,0,0.95);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+    <div style="position:relative;width:80px;height:80px;margin-bottom:24px;">
+      <div style="position:absolute;inset:0;border:3px solid rgba(236,72,153,0.2);border-top-color:#EC4899;border-radius:50%;animation:arSpinner 1s linear infinite;"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;">🔮</div>
+    </div>
+    <div style="color:#EC4899;font-size:20px;font-weight:800;margin-bottom:8px;font-family:Plus Jakarta Sans,sans-serif;">Activando Modo AR</div>
+    <div id="ar-loading-status" style="color:#fff;font-size:13px;font-family:Plus Jakarta Sans,sans-serif;opacity:0.8;">Iniciando...</div>
+  </div>
 
   <!-- PANTALLA DE CALIBRACIÓN (primera vez) -->
   <div id="ar-calibracion" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.92);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
@@ -3645,6 +3655,29 @@ function mostrarFormEditar(r, modalDetalle) {
 
   <!-- Capa para los marcadores AR -->
   <div id="ar-scene" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;"></div>
+
+  <!-- MINI-MAPA (solo visible en modo AR) -->
+  <div id="ar-mini-mapa" style="position:absolute;top:80px;right:14px;width:90px;height:90px;background:rgba(0,0,0,0.7);border:1.5px solid rgba(236,72,153,0.6);border-radius:50%;backdrop-filter:blur(10px);z-index:10;overflow:hidden;display:none;">
+    <!-- Círculos internos del mini-mapa -->
+    <div style="position:absolute;inset:0;border-radius:50%;">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:60%;border:1px dashed rgba(236,72,153,0.3);border-radius:50%;"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30%;height:30%;border:1px dashed rgba(236,72,153,0.4);border-radius:50%;"></div>
+    </div>
+    <!-- Cruz norte -->
+    <div style="position:absolute;top:4px;left:50%;transform:translateX(-50%);color:#EC4899;font-size:8px;font-weight:800;font-family:monospace;">N</div>
+    <!-- Centro (tú) -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:6px;height:6px;background:#EC4899;border-radius:50%;box-shadow:0 0 6px #EC4899;"></div>
+    <!-- Puntos de perros -->
+    <div id="ar-mini-blips" style="position:absolute;inset:0;"></div>
+  </div>
+
+  <!-- FLECHA OBJETIVO (cuando perro está fuera del campo visual) -->
+  <div id="ar-objetivo-flecha" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;animation:objetivoBlink 1.5s ease-in-out infinite;">
+    <div style="background:rgba(0,0,0,0.85);border:2px solid #EC4899;border-radius:14px;padding:10px 16px;backdrop-filter:blur(10px);text-align:center;box-shadow:0 0 20px rgba(236,72,153,0.5);">
+      <div id="ar-flecha-icono" style="font-size:32px;color:#EC4899;line-height:1;">→</div>
+      <div id="ar-flecha-texto" style="color:#fff;font-size:11px;font-weight:800;margin-top:4px;font-family:Plus Jakarta Sans,sans-serif;">--</div>
+    </div>
+  </div>
 
   <!-- HUD superior -->
   <div style="position:absolute;top:0;left:0;right:0;padding:14px;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);z-index:10;">
@@ -3872,9 +3905,9 @@ function mostrarFormEditar(r, modalDetalle) {
     50% { transform: scale(1.5); box-shadow: 0 0 24px #10B981, 0 0 8px #10B981; }
   }
   @keyframes blipAppear {
-    0% { transform: scale(0); opacity: 0; }
-    50% { transform: scale(1.5); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   }
   .radar-pulse {
     position: absolute;
@@ -3895,13 +3928,13 @@ function mostrarFormEditar(r, modalDetalle) {
     position: absolute;
     width: 44px;
     height: 44px;
-    margin: -22px 0 0 -22px;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
     animation: blipAppear 0.4s ease-out;
     pointer-events: auto;
     cursor: pointer;
     z-index: 10;
-    transition: left 0.3s ease-out, top 0.3s ease-out;
+    transition: left 0.3s ease-out, top 0.3s ease-out, transform 0.3s ease-out;
   }
   .radar-blip-foto {
     width: 100%;
@@ -3945,6 +3978,21 @@ function mostrarFormEditar(r, modalDetalle) {
   @keyframes blipRingExpand {
     0% { transform: scale(0.9); opacity: 1; }
     100% { transform: scale(1.8); opacity: 0; }
+  }
+  @keyframes arSpinner {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes objetivoBlink {
+    0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
+  }
+  @keyframes calorPulse {
+    0%, 100% { box-shadow: 0 0 12px #10B981, 0 0 24px rgba(16,185,129,0.5); }
+    50% { box-shadow: 0 0 24px #EF4444, 0 0 40px rgba(239,68,68,0.8); }
+  }
+  .ar-fade-transition {
+    transition: opacity 0.4s ease;
   }
   .radar-blip-label {
     position: absolute;
@@ -3994,8 +4042,22 @@ async function iniciarModoAR() {
     return;
   }
 
+  // Mostrar aviso de batería (solo la primera vez por sesión)
+  if (!sessionStorage.getItem('ar_bateria_avisada')) {
+    const proceder = confirm(
+      '🔋 IMPORTANTE\n\n' +
+      'El Modo AR usa cámara + GPS + brújula al mismo tiempo. ' +
+      'Esto consume batería más rápido.\n\n' +
+      '💡 Recomendación: úsalo solo cuando estés buscando un perro perdido cerca.\n\n' +
+      '¿Continuar?'
+    );
+    if (!proceder) return;
+    sessionStorage.setItem('ar_bateria_avisada', '1');
+  }
+
   document.getElementById('ar-overlay').style.display = 'block';
-  document.getElementById('ar-status').textContent = 'Pidiendo permisos...';
+  document.getElementById('ar-loading').style.display = 'flex';
+  document.getElementById('ar-loading-status').textContent = 'Pidiendo permiso de cámara...';
   arCalibrado = false;
   arCalibracionMovimientos = 0;
 
@@ -4006,26 +4068,42 @@ async function iniciarModoAR() {
     });
     document.getElementById('ar-video').srcObject = arStream;
 
-    document.getElementById('ar-status').textContent = 'Detectando ubicación...';
+    document.getElementById('ar-loading-status').textContent = 'Detectando ubicación GPS...';
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
     });
     arUserPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
-    document.getElementById('ar-status').textContent = 'Activando brújula...';
+    // Verificar precisión GPS
+    const accuracy = pos.coords.accuracy || 999;
+    if (accuracy > 100) {
+      document.getElementById('ar-loading-status').textContent = '⚠️ GPS poco preciso (' + Math.round(accuracy) + 'm). Sal al aire libre para mejor experiencia.';
+      await new Promise(r => setTimeout(r, 2500));
+    }
+
+    document.getElementById('ar-loading-status').textContent = 'Activando brújula...';
     await pedirPermisoBrujula();
 
-    // Mostrar pantalla de calibración
+    document.getElementById('ar-loading-status').textContent = 'Buscando perros perdidos...';
+    await cargarPerrosCerca();
+
+    // Ocultar loading
+    document.getElementById('ar-loading').style.display = 'none';
+
+    // Mostrar pantalla de calibración solo si NO se calibró en esta sesión
     mostrarCalibracion();
 
-    document.getElementById('ar-status').textContent = 'Buscando perros perdidos...';
-    await cargarPerrosCerca();
+    // Mostrar mini-mapa si estamos en modo AR
+    if (arMode === 'ar') {
+      const mini = document.getElementById('ar-mini-mapa');
+      if (mini) mini.style.display = 'block';
+    }
 
     iniciarTrackingAR();
   } catch(err) {
     console.error('AR error:', err);
-    document.getElementById('ar-status').textContent = 'Error: ' + (err.message || 'permiso denegado');
-    setTimeout(cerrarModoAR, 3000);
+    document.getElementById('ar-loading-status').textContent = 'Error: ' + (err.message || 'permiso denegado');
+    setTimeout(cerrarModoAR, 2500);
   }
 }
 
@@ -4352,6 +4430,97 @@ function renderizarMarcadoresAR() {
       setTimeout(() => { if (m.parentNode) m.remove(); }, 300);
     }
   });
+
+  // Actualizar flecha objetivo (perro más cercano fuera de pantalla)
+  actualizarFlechaObjetivo();
+
+  // Actualizar mini-mapa
+  actualizarMiniMapa();
+}
+
+function actualizarFlechaObjetivo() {
+  const flecha = document.getElementById('ar-objetivo-flecha');
+  if (!flecha) return;
+  if (arMode !== 'ar') { flecha.style.display = 'none'; return; }
+
+  // Buscar perro más cercano que está FUERA del campo visual
+  let mejorObjetivo = null;
+  arReportesCerca.forEach(r => {
+    let angDiff = r.bearing - arHeading;
+    while (angDiff > 180) angDiff -= 360;
+    while (angDiff < -180) angDiff += 360;
+
+    // Solo si está fuera del campo visual (>30° del centro) Y a menos de 1 km
+    if (Math.abs(angDiff) > 30 && r.distancia < 1) {
+      if (!mejorObjetivo || r.distancia < mejorObjetivo.distancia) {
+        mejorObjetivo = { ...r, angDiff: angDiff };
+      }
+    }
+  });
+
+  if (!mejorObjetivo) {
+    flecha.style.display = 'none';
+    return;
+  }
+
+  flecha.style.display = 'block';
+  const icono = document.getElementById('ar-flecha-icono');
+  const texto = document.getElementById('ar-flecha-texto');
+
+  // Decidir dirección de la flecha
+  let direccion = '';
+  if (mejorObjetivo.angDiff > 0 && mejorObjetivo.angDiff < 90) direccion = '↗';
+  else if (mejorObjetivo.angDiff >= 90 && mejorObjetivo.angDiff <= 180) direccion = '→';
+  else if (mejorObjetivo.angDiff < 0 && mejorObjetivo.angDiff > -90) direccion = '↖';
+  else direccion = '←';
+
+  if (icono) icono.textContent = direccion;
+
+  const nombre = (mejorObjetivo.nombre && mejorObjetivo.nombre.toLowerCase() !== 'nn') ? mejorObjetivo.nombre : 'Perro';
+  const dist = mejorObjetivo.distancia < 1
+    ? Math.round(mejorObjetivo.distancia * 1000) + 'm'
+    : mejorObjetivo.distancia.toFixed(1) + 'km';
+  if (texto) texto.textContent = nombre + ' · ' + dist;
+}
+
+function actualizarMiniMapa() {
+  const blips = document.getElementById('ar-mini-blips');
+  if (!blips) return;
+  if (arMode !== 'ar') return;
+
+  const idsActuales = new Set();
+
+  arReportesCerca.forEach(r => {
+    let angRel = r.bearing - arHeading;
+    while (angRel > 180) angRel -= 360;
+    while (angRel < -180) angRel += 360;
+
+    const angRad = angRel * Math.PI / 180;
+    const distNorm = Math.min(r.distancia / 5, 1);
+    const distVisual = Math.pow(distNorm, 0.7);
+
+    // Radio máximo del mini-mapa: 42% (deja espacio para borde)
+    const radioMax = 42;
+    const x = 50 + Math.sin(angRad) * distVisual * radioMax;
+    const y = 50 - Math.cos(angRad) * distVisual * radioMax;
+
+    idsActuales.add(r.id);
+    let pt = blips.querySelector('[data-mini-id="' + r.id + '"]');
+    if (pt) {
+      pt.style.left = x + '%';
+      pt.style.top = y + '%';
+    } else {
+      pt = document.createElement('div');
+      pt.dataset.miniId = r.id;
+      pt.style.cssText = 'position:absolute;left:' + x + '%;top:' + y + '%;width:5px;height:5px;background:#EC4899;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px #EC4899;';
+      blips.appendChild(pt);
+    }
+  });
+
+  // Limpiar puntos viejos
+  blips.querySelectorAll('[data-mini-id]').forEach(p => {
+    if (!idsActuales.has(p.dataset.miniId)) p.remove();
+  });
 }
 
 function actualizarListaAR() {
@@ -4405,42 +4574,100 @@ function toggleModoRadar() {
   const arScene = document.getElementById('ar-scene');
   const arMira = document.getElementById('ar-mira');
   const arProx = document.getElementById('ar-proximidad');
-  const arBrujula = document.getElementById('ar-brujula');
   const arVideo = document.getElementById('ar-video');
   const modeLabel = document.getElementById('ar-mode-label');
   const toggleBtn = document.getElementById('ar-toggle-radar');
+  const miniMapa = document.getElementById('ar-mini-mapa');
+  const flecha = document.getElementById('ar-objetivo-flecha');
 
   if (arMode === 'radar') {
-    // Activar Radar
-    radarLayer.style.display = 'block';
-    if (arScene) arScene.style.display = 'none';
-    if (arMira) arMira.style.display = 'none';
-    if (arProx) arProx.style.display = 'none';
-    if (arVideo) arVideo.style.opacity = '0.35';
+    // === ACTIVAR RADAR (con fade in) ===
+    // Primero: ocultamos AR con fade
+    if (arScene) {
+      arScene.style.transition = 'opacity 0.4s ease';
+      arScene.style.opacity = '0';
+    }
+    if (arMira) arMira.style.opacity = '0';
+    if (arProx) arProx.style.opacity = '0';
+    if (miniMapa) miniMapa.style.opacity = '0';
+    if (flecha) flecha.style.display = 'none';
+
+    setTimeout(() => {
+      if (arScene) arScene.style.display = 'none';
+      if (arMira) arMira.style.display = 'none';
+      if (arProx) arProx.style.display = 'none';
+      if (miniMapa) miniMapa.style.display = 'none';
+
+      // Cámara semi-transparente con animación
+      if (arVideo) arVideo.style.opacity = '0.35';
+
+      // Mostrar radar con fade in
+      if (radarLayer) {
+        radarLayer.style.opacity = '0';
+        radarLayer.style.display = 'block';
+        radarLayer.style.transition = 'opacity 0.5s ease';
+        // Forzar reflow para que la transición funcione
+        void radarLayer.offsetWidth;
+        radarLayer.style.opacity = '1';
+      }
+
+      renderizarRadar();
+    }, 400);
+
     if (modeLabel) modeLabel.textContent = '📡 MODO RADAR ACTIVO';
     if (toggleBtn) {
       toggleBtn.style.background = '#10B981';
       toggleBtn.style.color = '#fff';
       toggleBtn.textContent = '🔮';
     }
-    renderizarRadar();
   } else {
-    // Volver a AR
-    radarLayer.style.display = 'none';
-    if (arScene) arScene.style.display = 'block';
-    if (arMira) arMira.style.display = 'block';
-    if (arVideo) arVideo.style.opacity = '1';
+    // === VOLVER A AR (con fade in) ===
+    if (radarLayer) {
+      radarLayer.style.transition = 'opacity 0.4s ease';
+      radarLayer.style.opacity = '0';
+    }
+
+    setTimeout(() => {
+      if (radarLayer) radarLayer.style.display = 'none';
+      if (arVideo) arVideo.style.opacity = '1';
+
+      // Mostrar AR con fade in
+      if (arScene) {
+        arScene.style.opacity = '0';
+        arScene.style.display = 'block';
+        void arScene.offsetWidth;
+        arScene.style.opacity = '1';
+      }
+      if (arMira) {
+        arMira.style.opacity = '0';
+        arMira.style.display = 'block';
+        void arMira.offsetWidth;
+        arMira.style.opacity = '1';
+      }
+      if (miniMapa) {
+        miniMapa.style.opacity = '0';
+        miniMapa.style.display = 'block';
+        void miniMapa.offsetWidth;
+        miniMapa.style.opacity = '1';
+      }
+
+      // Reactivar proximidad si hay perros
+      if (arReportesCerca && arReportesCerca.length > 0 && arProx) {
+        arProx.style.opacity = '0';
+        arProx.style.display = 'block';
+        void arProx.offsetWidth;
+        arProx.style.opacity = '1';
+      }
+
+      renderizarMarcadoresAR();
+    }, 400);
+
     if (modeLabel) modeLabel.textContent = '🔮 MODO AR ACTIVO';
     if (toggleBtn) {
       toggleBtn.style.background = 'rgba(0,0,0,0.6)';
       toggleBtn.style.color = '#10B981';
       toggleBtn.textContent = '🔄';
     }
-    // Reactivar proximidad si hay perros
-    if (arReportesCerca && arReportesCerca.length > 0 && arProx) {
-      arProx.style.display = 'block';
-    }
-    renderizarMarcadoresAR();
   }
 }
 
@@ -4489,9 +4716,34 @@ function renderizarRadar() {
     idsActuales.add(r.id);
 
     let blip = blips.querySelector('[data-id="' + r.id + '"]');
+
+    // Calcular escala según distancia
+    let escalaBlip;
+    if (r.distancia < 0.05) escalaBlip = 1.5;       // <50m
+    else if (r.distancia < 0.2) escalaBlip = 1.25;  // 50-200m
+    else if (r.distancia < 0.5) escalaBlip = 1.0;   // 200-500m
+    else if (r.distancia < 1.5) escalaBlip = 0.85;  // 500m-1.5km
+    else if (r.distancia < 3) escalaBlip = 0.7;     // 1.5-3km
+    else escalaBlip = 0.55;                          // >3km
+
+    // ¿Está muy cerca? → efecto calor (rojo pulsando)
+    const muyCerca = r.distancia < 0.05; // <50m
+
     if (blip) {
       blip.style.left = x + '%';
       blip.style.top = y + '%';
+      blip.style.transform = 'translate(-50%, -50%) scale(' + escalaBlip + ')';
+      // Actualizar efecto calor
+      const fotoEl = blip.querySelector('.radar-blip-foto');
+      if (fotoEl) {
+        if (muyCerca) {
+          fotoEl.style.animation = 'calorPulse 1s ease-in-out infinite';
+          fotoEl.style.borderColor = '#EF4444';
+        } else {
+          fotoEl.style.animation = 'blipFotoPulse 1.5s ease-in-out infinite';
+          fotoEl.style.borderColor = '#10B981';
+        }
+      }
       // Actualizar distancia en el label
       const label = blip.querySelector('.radar-blip-label');
       if (label) {
@@ -4504,22 +4756,25 @@ function renderizarRadar() {
       blip.className = 'radar-blip';
       blip.style.left = x + '%';
       blip.style.top = y + '%';
+      blip.style.transform = 'translate(-50%, -50%) scale(' + escalaBlip + ')';
       blip.dataset.id = r.id;
 
       const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'TARGET';
       const dist = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'M' : r.distancia.toFixed(1) + 'KM';
 
       const fotoHtml = r.foto_url
-        ? `<img src="${r.foto_url}" alt="${nombre}" onerror="this.parentElement.innerHTML='<div class=&quot;radar-blip-foto-fallback&quot;>🐕</div>'"/>`
+        ? '<img src="' + r.foto_url + '" alt="' + nombre + '" onerror="this.parentElement.innerHTML=\'<div class=&quot;radar-blip-foto-fallback&quot;>🐕</div>\'"/>'
         : '<div class="radar-blip-foto-fallback">🐕</div>';
 
-      blip.innerHTML = `
-        <div class="radar-blip-ring"></div>
-        <div class="radar-blip-foto">
-          ${fotoHtml}
-        </div>
-        <div class="radar-blip-label">${nombre.toUpperCase().substring(0,12)} · ${dist}</div>
-      `;
+      const animacionFoto = muyCerca ? 'calorPulse 1s ease-in-out infinite' : 'blipFotoPulse 1.5s ease-in-out infinite';
+      const borderColor = muyCerca ? '#EF4444' : '#10B981';
+
+      blip.innerHTML =
+        '<div class="radar-blip-ring"></div>' +
+        '<div class="radar-blip-foto" style="animation:' + animacionFoto + ';border-color:' + borderColor + ';">' +
+          fotoHtml +
+        '</div>' +
+        '<div class="radar-blip-label">' + nombre.toUpperCase().substring(0,12) + ' · ' + dist + '</div>';
 
       blip.onclick = () => {
         cerrarModoAR();
@@ -4592,11 +4847,11 @@ function cerrarModoAR() {
   const blips = document.getElementById('radar-blips');
   if (blips) blips.innerHTML = '';
   const radarLayer = document.getElementById('ar-radar-layer');
-  if (radarLayer) radarLayer.style.display = 'none';
+  if (radarLayer) { radarLayer.style.display = 'none'; radarLayer.style.opacity = '1'; }
   const arScene = document.getElementById('ar-scene');
-  if (arScene) arScene.style.display = 'block';
+  if (arScene) { arScene.style.display = 'block'; arScene.style.opacity = '1'; }
   const arMira = document.getElementById('ar-mira');
-  if (arMira) arMira.style.display = 'block';
+  if (arMira) { arMira.style.display = 'block'; arMira.style.opacity = '1'; }
   const arVideo = document.getElementById('ar-video');
   if (arVideo) arVideo.style.opacity = '1';
   const modeLabel = document.getElementById('ar-mode-label');
@@ -4609,6 +4864,15 @@ function cerrarModoAR() {
   }
   const cal = document.getElementById('ar-calibracion');
   if (cal) cal.style.display = 'none';
+  // Resetear loading + mini-mapa + flecha
+  const loading = document.getElementById('ar-loading');
+  if (loading) loading.style.display = 'none';
+  const miniMapa = document.getElementById('ar-mini-mapa');
+  if (miniMapa) { miniMapa.style.display = 'none'; miniMapa.style.opacity = '1'; }
+  const miniBlips = document.getElementById('ar-mini-blips');
+  if (miniBlips) miniBlips.innerHTML = '';
+  const flecha = document.getElementById('ar-objetivo-flecha');
+  if (flecha) flecha.style.display = 'none';
 }
 
 // Bind listeners de botones

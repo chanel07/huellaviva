@@ -3618,6 +3618,31 @@ function mostrarFormEditar(r, modalDetalle) {
   <!-- Video de cámara (fondo) -->
   <video id="ar-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;"></video>
 
+  <!-- PANTALLA DE CALIBRACIÓN (primera vez) -->
+  <div id="ar-calibracion" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.92);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+    <div style="font-size:64px;animation:figureEight 2s ease-in-out infinite;display:inline-block;margin-bottom:20px;">🧭</div>
+    <div style="color:#EC4899;font-size:22px;font-weight:800;margin-bottom:8px;font-family:Plus Jakarta Sans,sans-serif;">Calibremos tu brújula</div>
+    <div style="color:#fff;font-size:14px;margin-bottom:24px;font-family:Plus Jakarta Sans,sans-serif;line-height:1.5;max-width:280px;">Mueve tu celular dibujando un <strong style="color:#EC4899;">8 en el aire</strong> ∞</div>
+
+    <!-- Animación visual del 8 -->
+    <svg width="180" height="120" viewBox="0 0 180 120" style="margin-bottom:24px;">
+      <path d="M 30 60 Q 30 20 90 60 Q 150 100 150 60 Q 150 20 90 60 Q 30 100 30 60" stroke="#EC4899" stroke-width="3" fill="none" stroke-dasharray="5,5"/>
+      <circle id="cal-dot" r="8" fill="#fff" stroke="#EC4899" stroke-width="2">
+        <animateMotion dur="2s" repeatCount="indefinite">
+          <mpath href="#cal-path"/>
+        </animateMotion>
+      </circle>
+      <path id="cal-path" d="M 30 60 Q 30 20 90 60 Q 150 100 150 60 Q 150 20 90 60 Q 30 100 30 60" fill="none"/>
+    </svg>
+
+    <div id="cal-progress" style="width:200px;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;overflow:hidden;margin-bottom:12px;">
+      <div id="cal-progress-bar" style="height:100%;background:linear-gradient(90deg,#EC4899,#7C3AED);border-radius:3px;width:0%;transition:width 0.3s;"></div>
+    </div>
+    <div id="cal-status" style="color:#9CA3AF;font-size:12px;font-family:Plus Jakarta Sans,sans-serif;">Detectando movimiento...</div>
+
+    <button id="ar-skip-cal" style="margin-top:24px;background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:8px 18px;color:#fff;font-size:12px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">Saltar calibración</button>
+  </div>
+
   <!-- Capa para los marcadores AR -->
   <div id="ar-scene" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;"></div>
 
@@ -3629,7 +3654,7 @@ function mostrarFormEditar(r, modalDetalle) {
         <div style="color:#fff;font-size:11px;font-weight:700;font-family:Plus Jakarta Sans,sans-serif;text-align:center;">🔮 MODO AR ACTIVO</div>
         <div id="ar-status" style="color:#EC4899;font-size:13px;font-weight:800;text-align:center;font-family:Plus Jakarta Sans,sans-serif;">Buscando perros perdidos...</div>
       </div>
-      <div style="width:42px;"></div>
+      <button id="ar-share" style="background:rgba(0,0,0,0.6);border:1.5px solid #fff;border-radius:50%;width:42px;height:42px;color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(10px);">📸</button>
     </div>
   </div>
 
@@ -3639,6 +3664,13 @@ function mostrarFormEditar(r, modalDetalle) {
       <div id="ar-brujula" style="font-size:28px;transition:transform 0.2s;">🧭</div>
     </div>
     <div style="color:#fff;font-size:10px;font-weight:700;text-align:center;margin-top:4px;text-shadow:0 1px 3px rgba(0,0,0,0.8);font-family:Plus Jakarta Sans,sans-serif;" id="ar-orientacion">--</div>
+  </div>
+
+  <!-- Indicador de proximidad (nuevo) -->
+  <div id="ar-proximidad" style="display:none;position:absolute;top:160px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(0,0,0,0.8);border-radius:20px;padding:8px 18px;backdrop-filter:blur(10px);text-align:center;border:1.5px solid #EC4899;animation:proximidadPulse 1.5s ease-in-out infinite;">
+    <div style="color:#fff;font-size:11px;font-weight:700;font-family:Plus Jakarta Sans,sans-serif;" id="ar-prox-nombre">--</div>
+    <div style="color:#EC4899;font-size:18px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;" id="ar-prox-distancia">--</div>
+    <div style="color:#fff;font-size:10px;font-family:Plus Jakarta Sans,sans-serif;" id="ar-prox-estado">--</div>
   </div>
 
   <!-- Radar inferior -->
@@ -3677,6 +3709,25 @@ function mostrarFormEditar(r, modalDetalle) {
     0% { transform: scale(0.8); opacity: 1; }
     100% { transform: scale(2); opacity: 0; }
   }
+  @keyframes arMarkerEnter {
+    0% { opacity: 0; transform: scale(0.3) translateY(40px); }
+    60% { opacity: 1; transform: scale(1.15) translateY(-5px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes figureEight {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-20deg) translateX(-10px); }
+    50% { transform: rotate(0deg); }
+    75% { transform: rotate(20deg) translateX(10px); }
+  }
+  @keyframes proximidadPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(236,72,153,0.7); }
+    50% { box-shadow: 0 0 0 12px rgba(236,72,153,0); }
+  }
+  @keyframes arGlow {
+    0%, 100% { box-shadow: 0 0 24px rgba(236,72,153,0.8), 0 4px 16px rgba(0,0,0,0.5); }
+    50% { box-shadow: 0 0 40px rgba(236,72,153,1), 0 4px 16px rgba(0,0,0,0.5); }
+  }
   .ar-marker-3d {
     position: absolute;
     width: 90px;
@@ -3685,17 +3736,17 @@ function mostrarFormEditar(r, modalDetalle) {
     text-align: center;
     pointer-events: auto;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.3s;
+    transition: left 0.15s ease-out, top 0.15s ease-out, transform 0.3s ease-out;
     z-index: 6;
+    animation: arMarkerEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .ar-marker-photo {
     width: 80px;
     height: 80px;
     border-radius: 50%;
     border: 3px solid #fff;
-    box-shadow: 0 0 24px rgba(236,72,153,0.8), 0 4px 16px rgba(0,0,0,0.5);
     object-fit: cover;
-    animation: arMarkerFloat 2.5s ease-in-out infinite;
+    animation: arMarkerFloat 2.5s ease-in-out infinite, arGlow 2.5s ease-in-out infinite;
     background: linear-gradient(135deg, #EF4444, #DC2626);
   }
   .ar-marker-photo-img {
@@ -3740,16 +3791,21 @@ function mostrarFormEditar(r, modalDetalle) {
 </style>
 
 <script>
-// ============ MODO AR (REALIDAD AUMENTADA) ============
+// ============ MODO AR (REALIDAD AUMENTADA) - VERSION PRO ============
 let arStream = null;
 let arWatching = false;
 let arHeading = 0;
 let arUserPos = null;
 let arReportesCerca = [];
 let arPermissionGranted = false;
+let arPerroMasCercano = null;
+let arDistanciaAnterior = null;
+let arUltimaVibracion = 0;
+let arCalibrado = false;
+let arCalibracionMovimientos = 0;
+let arHeadingAnterior = null;
 
 async function iniciarModoAR() {
-  // Verificar soporte
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert('Tu celular no soporta cámara en el navegador. Intenta con Chrome.');
     return;
@@ -3759,34 +3815,33 @@ async function iniciarModoAR() {
     return;
   }
 
-  // Mostrar overlay
   document.getElementById('ar-overlay').style.display = 'block';
   document.getElementById('ar-status').textContent = 'Pidiendo permisos...';
+  arCalibrado = false;
+  arCalibracionMovimientos = 0;
 
   try {
-    // 1. Pedir cámara trasera
     arStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } },
       audio: false
     });
     document.getElementById('ar-video').srcObject = arStream;
 
-    // 2. Pedir GPS
-    document.getElementById('ar-status').textContent = 'Detectando tu ubicación...';
+    document.getElementById('ar-status').textContent = 'Detectando ubicación...';
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
     });
     arUserPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
-    // 3. Pedir brújula (orientación)
     document.getElementById('ar-status').textContent = 'Activando brújula...';
     await pedirPermisoBrujula();
 
-    // 4. Cargar perros cerca
+    // Mostrar pantalla de calibración
+    mostrarCalibracion();
+
     document.getElementById('ar-status').textContent = 'Buscando perros perdidos...';
     await cargarPerrosCerca();
 
-    // 5. Seguir actualizando posición y heading
     iniciarTrackingAR();
   } catch(err) {
     console.error('AR error:', err);
@@ -3795,8 +3850,60 @@ async function iniciarModoAR() {
   }
 }
 
+// ============ CALIBRACIÓN ============
+function mostrarCalibracion() {
+  // Si ya se calibró antes (sesión actual), saltar
+  if (localStorage.getItem('ar_calibrado_sesion') === '1') {
+    arCalibrado = true;
+    return;
+  }
+  const cal = document.getElementById('ar-calibracion');
+  cal.style.display = 'flex';
+
+  document.getElementById('ar-skip-cal').onclick = () => {
+    arCalibrado = true;
+    cal.style.display = 'none';
+    localStorage.setItem('ar_calibrado_sesion', '1');
+  };
+}
+
+function detectarMovimientoCalibracion(heading) {
+  if (arCalibrado) return;
+  if (arHeadingAnterior === null) {
+    arHeadingAnterior = heading;
+    return;
+  }
+  let diff = Math.abs(heading - arHeadingAnterior);
+  if (diff > 180) diff = 360 - diff;
+
+  // Si hubo movimiento significativo
+  if (diff > 15) {
+    arCalibracionMovimientos++;
+    arHeadingAnterior = heading;
+
+    const progreso = Math.min(arCalibracionMovimientos * 10, 100);
+    const bar = document.getElementById('cal-progress-bar');
+    if (bar) bar.style.width = progreso + '%';
+    const status = document.getElementById('cal-status');
+    if (status) {
+      if (progreso < 30) status.textContent = 'Detectando movimiento...';
+      else if (progreso < 70) status.textContent = '¡Muy bien! Sigue moviendo...';
+      else if (progreso < 100) status.textContent = 'Casi listo...';
+      else status.textContent = '¡Brújula calibrada! ✅';
+    }
+
+    if (progreso >= 100) {
+      arCalibrado = true;
+      localStorage.setItem('ar_calibrado_sesion', '1');
+      setTimeout(() => {
+        const cal = document.getElementById('ar-calibracion');
+        if (cal) cal.style.display = 'none';
+      }, 800);
+    }
+  }
+}
+
 async function pedirPermisoBrujula() {
-  // iOS requiere permiso explícito
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
       const permission = await DeviceOrientationEvent.requestPermission();
@@ -3808,7 +3915,6 @@ async function pedirPermisoBrujula() {
     }
   }
   arPermissionGranted = true;
-  // Listener de orientación
   window.addEventListener('deviceorientationabsolute', handleOrientation, true);
   window.addEventListener('deviceorientation', handleOrientation, true);
 }
@@ -3816,14 +3922,16 @@ async function pedirPermisoBrujula() {
 function handleOrientation(event) {
   let heading = null;
   if (event.webkitCompassHeading !== undefined) {
-    heading = event.webkitCompassHeading; // iOS
+    heading = event.webkitCompassHeading;
   } else if (event.alpha !== null) {
-    heading = 360 - event.alpha; // Android
+    heading = 360 - event.alpha;
   }
   if (heading === null) return;
   arHeading = heading;
 
-  // Actualizar brújula visual
+  // Detectar movimiento durante calibración
+  detectarMovimientoCalibracion(heading);
+
   const brujula = document.getElementById('ar-brujula');
   if (brujula) brujula.style.transform = `rotate(${-heading}deg)`;
   const dir = document.getElementById('ar-orientacion');
@@ -3832,7 +3940,6 @@ function handleOrientation(event) {
     dir.textContent = cardinal + ' · ' + Math.round(heading) + '°';
   }
 
-  // Re-renderizar marcadores con nueva orientación
   renderizarMarcadoresAR();
 }
 
@@ -3840,7 +3947,6 @@ async function cargarPerrosCerca() {
   try {
     const data = await supabase('GET', 'reportes?activo=eq.true&tipo=eq.perdido');
     if (!arUserPos) return;
-    // Filtrar a los que tengan coordenadas y estén a menos de 5 km
     arReportesCerca = (data || [])
       .filter(r => r.lat && r.lng)
       .map(r => {
@@ -3859,6 +3965,7 @@ async function cargarPerrosCerca() {
 
     actualizarListaAR();
     renderizarMarcadoresAR();
+    actualizarProximidad();
   } catch(e) {
     console.error(e);
     document.getElementById('ar-status').textContent = 'Error cargando datos';
@@ -3882,67 +3989,154 @@ function calcularBearing(lat1, lng1, lat2, lng2) {
   return (bearing + 360) % 360;
 }
 
+// ============ PROXIMIDAD + VIBRACIÓN ============
+function actualizarProximidad() {
+  if (!arReportesCerca || arReportesCerca.length === 0) {
+    document.getElementById('ar-proximidad').style.display = 'none';
+    arPerroMasCercano = null;
+    arDistanciaAnterior = null;
+    return;
+  }
+
+  const cercano = arReportesCerca[0];
+  arPerroMasCercano = cercano;
+
+  const prox = document.getElementById('ar-proximidad');
+  prox.style.display = 'block';
+
+  const nombre = (cercano.nombre && cercano.nombre.toLowerCase() !== 'nn') ? cercano.nombre : 'Perro perdido';
+  document.getElementById('ar-prox-nombre').textContent = '🐕 ' + nombre;
+
+  const distM = Math.round(cercano.distancia * 1000);
+  document.getElementById('ar-prox-distancia').textContent = distM < 1000 ? distM + 'm' : (cercano.distancia.toFixed(1) + 'km');
+
+  // Indicador acercándose/alejándose
+  let estado = '';
+  if (arDistanciaAnterior !== null) {
+    const diff = arDistanciaAnterior - cercano.distancia;
+    if (Math.abs(diff) < 0.005) {
+      estado = '🟡 Sin movimiento';
+    } else if (diff > 0) {
+      estado = '🟢 ¡Te acercas!';
+    } else {
+      estado = '🔴 Te alejas';
+    }
+  } else {
+    estado = '📍 Detectado';
+  }
+
+  // Tipos de proximidad
+  if (distM < 50) estado = '🎯 ¡Llegaste! Mira alrededor';
+  else if (distM < 100) estado = '🔥 ¡Muy cerca!';
+  else if (distM < 200) estado = '✨ Cerca - ' + estado;
+
+  document.getElementById('ar-prox-estado').textContent = estado;
+  arDistanciaAnterior = cercano.distancia;
+
+  // VIBRACIÓN según proximidad
+  vibrarSegunProximidad(distM);
+}
+
+function vibrarSegunProximidad(distanciaM) {
+  if (!navigator.vibrate) return;
+  const ahora = Date.now();
+  // Solo vibrar cada cierto tiempo
+  let intervalo = 0;
+  let patron = null;
+
+  if (distanciaM < 50) {
+    intervalo = 1500;
+    patron = [80, 50, 80, 50, 80];
+  } else if (distanciaM < 100) {
+    intervalo = 2500;
+    patron = [60, 80, 60];
+  } else if (distanciaM < 200) {
+    intervalo = 4000;
+    patron = [50];
+  } else {
+    return; // No vibrar si está lejos
+  }
+
+  if (ahora - arUltimaVibracion >= intervalo) {
+    try { navigator.vibrate(patron); } catch(e) {}
+    arUltimaVibracion = ahora;
+  }
+}
+
 function renderizarMarcadoresAR() {
   const scene = document.getElementById('ar-scene');
   if (!scene) return;
-  scene.innerHTML = '';
 
   const screenW = window.innerWidth;
   const screenH = window.innerHeight;
-  const fovDegrees = 60; // Campo de visión aproximado del celular
+  const fovDegrees = 60;
+
+  // Track markers para reutilizar (evita re-crear con cada update)
+  const idsActuales = new Set();
 
   arReportesCerca.forEach(r => {
-    // Diferencia angular entre hacia dónde apunta el celular y dónde está el perro
     let angDiff = r.bearing - arHeading;
-    // Normalizar a [-180, 180]
     while (angDiff > 180) angDiff -= 360;
     while (angDiff < -180) angDiff += 360;
 
-    // Solo mostrar si está dentro del campo visual (más o menos)
     if (Math.abs(angDiff) > fovDegrees) return;
 
-    // Calcular posición X en pantalla
     const x = (angDiff / fovDegrees) * (screenW / 2) + (screenW / 2);
-
-    // Posición Y: más cerca = más abajo en pantalla
-    const yProporcion = Math.min(r.distancia / 5, 1); // 0 (cerca) a 1 (lejos)
+    const yProporcion = Math.min(r.distancia / 5, 1);
     const y = screenH * 0.45 - (yProporcion * 100);
 
-    // Escala: más cerca = más grande
-    const escala = Math.max(0.6, 1.2 - r.distancia * 0.15);
+    // Tamaño 3D según distancia: más cerca = MUCHO más grande
+    let escala;
+    if (r.distancia < 0.1) escala = 1.5;
+    else if (r.distancia < 0.3) escala = 1.25;
+    else if (r.distancia < 0.5) escala = 1.0;
+    else if (r.distancia < 1) escala = 0.85;
+    else if (r.distancia < 2) escala = 0.7;
+    else escala = 0.55;
 
-    // Crear marcador
-    const marker = document.createElement('div');
-    marker.className = 'ar-marker-3d';
-    marker.style.left = x + 'px';
-    marker.style.top = y + 'px';
-    marker.style.transform = `scale(${escala})`;
-    marker.dataset.id = r.id;
+    idsActuales.add(r.id);
 
-    const distTexto = r.distancia < 1
-      ? Math.round(r.distancia * 1000) + 'm'
-      : r.distancia.toFixed(1) + 'km';
+    // Reutilizar marcador si ya existe (evita re-animar)
+    let marker = scene.querySelector('[data-id="' + r.id + '"]');
+    if (marker) {
+      marker.style.left = x + 'px';
+      marker.style.top = y + 'px';
+      marker.style.transform = `scale(${escala})`;
+    } else {
+      marker = document.createElement('div');
+      marker.className = 'ar-marker-3d';
+      marker.style.left = x + 'px';
+      marker.style.top = y + 'px';
+      marker.style.transform = `scale(${escala})`;
+      marker.dataset.id = r.id;
 
-    const fotoSrc = r.foto_url || '';
-    const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'Perro perdido';
+      const distTexto = r.distancia < 1
+        ? Math.round(r.distancia * 1000) + 'm'
+        : r.distancia.toFixed(1) + 'km';
+      const fotoSrc = r.foto_url || '';
+      const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'Perro perdido';
 
-    marker.innerHTML = `
-      <div style="position:relative;display:inline-block;">
-        <div class="ar-marker-ring"></div>
-        <div class="ar-marker-photo">
-          ${fotoSrc ? `<img class="ar-marker-photo-img" src="${fotoSrc}" alt="${nombre}"/>` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🐕</div>'}
+      marker.innerHTML = `
+        <div style="position:relative;display:inline-block;">
+          <div class="ar-marker-ring"></div>
+          <div class="ar-marker-photo">
+            ${fotoSrc ? `<img class="ar-marker-photo-img" src="${fotoSrc}" alt="${nombre}"/>` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🐕</div>'}
+          </div>
         </div>
-      </div>
-      <div class="ar-marker-label">🚨 ${nombre}</div>
-      <div class="ar-marker-distance">${distTexto}</div>
-    `;
+        <div class="ar-marker-label">🚨 ${nombre}</div>
+        <div class="ar-marker-distance">${distTexto}</div>
+      `;
+      marker.onclick = () => {
+        cerrarModoAR();
+        setTimeout(() => verDetalle(r.id), 300);
+      };
+      scene.appendChild(marker);
+    }
+  });
 
-    marker.onclick = () => {
-      cerrarModoAR();
-      setTimeout(() => verDetalle(r.id), 300);
-    };
-
-    scene.appendChild(marker);
+  // Eliminar marcadores que ya no están en el campo visual
+  scene.querySelectorAll('.ar-marker-3d').forEach(m => {
+    if (!idsActuales.has(m.dataset.id)) m.remove();
   });
 }
 
@@ -3975,47 +4169,88 @@ function iniciarTrackingAR() {
   navigator.geolocation.watchPosition(
     (pos) => {
       arUserPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      // Recalcular distancias y bearings
       arReportesCerca = arReportesCerca.map(r => ({
         ...r,
         distancia: distanciaKm(arUserPos.lat, arUserPos.lng, r.lat, r.lng),
         bearing: calcularBearing(arUserPos.lat, arUserPos.lng, r.lat, r.lng)
       }));
+      // Re-ordenar por cercanía
+      arReportesCerca.sort((a, b) => a.distancia - b.distancia);
       renderizarMarcadoresAR();
+      actualizarProximidad();
     },
     null,
-    { enableHighAccuracy: true, maximumAge: 5000 }
+    { enableHighAccuracy: true, maximumAge: 3000 }
   );
 }
 
+// ============ COMPARTIR / CAPTURA ============
+async function compartirVistaAR() {
+  try {
+    const mensaje = arReportesCerca.length > 0
+      ? '🔮 Acabo de detectar ' + arReportesCerca.length + ' perro' + (arReportesCerca.length>1?'s':'') + ' perdido' + (arReportesCerca.length>1?'s':'') + ' cerca de mí usando el Modo AR de HuellaViva. ¡Es como Pokémon Go pero para salvar perritos! 🐾'
+      : '🔮 Probé el Modo AR de HuellaViva - es como Pokémon Go pero para encontrar perros perdidos en Santa Marta. 🐾';
+    const texto = mensaje + '\n\nhttps://huellavivaapp.com';
+
+    if (navigator.share) {
+      await navigator.share({
+        title: 'HuellaViva - Modo AR',
+        text: texto
+      });
+    } else {
+      // Fallback: copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(texto);
+        alert('✅ Mensaje copiado. Pégalo donde quieras compartir.');
+      } catch(e) {
+        // Compartir por WhatsApp directo
+        const wa = 'https://wa.me/?text=' + encodeURIComponent(texto);
+        window.open(wa, '_blank');
+      }
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      console.error(e);
+    }
+  }
+}
+
 function cerrarModoAR() {
-  // Detener cámara
   if (arStream) {
     arStream.getTracks().forEach(t => t.stop());
     arStream = null;
   }
-  // Quitar listeners
   window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
   window.removeEventListener('deviceorientation', handleOrientation, true);
   arWatching = false;
   arReportesCerca = [];
   arUserPos = null;
-  // Ocultar overlay
+  arPerroMasCercano = null;
+  arDistanciaAnterior = null;
+  arHeadingAnterior = null;
+  arCalibrado = false;
+  arCalibracionMovimientos = 0;
   document.getElementById('ar-overlay').style.display = 'none';
   document.getElementById('ar-scene').innerHTML = '';
+  document.getElementById('ar-proximidad').style.display = 'none';
+  const cal = document.getElementById('ar-calibracion');
+  if (cal) cal.style.display = 'none';
 }
 
-// Cerrar con botón X
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('ar-close');
-  if (btn) btn.onclick = cerrarModoAR;
-});
+// Bind listeners de botones
+function bindArButtons() {
+  const btnClose = document.getElementById('ar-close');
+  if (btnClose) btnClose.onclick = cerrarModoAR;
+  const btnShare = document.getElementById('ar-share');
+  if (btnShare) btnShare.onclick = compartirVistaAR;
+}
 
-// También cerrar si ya está cargado
-setTimeout(() => {
-  const btn = document.getElementById('ar-close');
-  if (btn) btn.onclick = cerrarModoAR;
-}, 1000);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindArButtons);
+} else {
+  bindArButtons();
+}
+setTimeout(bindArButtons, 1000);
 </script>
 </body>
 </html>

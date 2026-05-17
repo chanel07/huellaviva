@@ -3893,16 +3893,58 @@ function mostrarFormEditar(r, modalDetalle) {
   }
   .radar-blip {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
-    background: #10B981;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
     border-radius: 50%;
-    box-shadow: 0 0 12px #10B981;
-    animation: blipAppear 0.4s ease-out, blipPulse 1.5s ease-in-out infinite 0.4s;
+    animation: blipAppear 0.4s ease-out;
     pointer-events: auto;
     cursor: pointer;
     z-index: 10;
+    transition: left 0.3s ease-out, top 0.3s ease-out;
+  }
+  .radar-blip-foto {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2.5px solid #10B981;
+    box-shadow: 0 0 12px #10B981, 0 0 24px rgba(16,185,129,0.5);
+    overflow: hidden;
+    background: #064E3B;
+    animation: blipFotoPulse 1.5s ease-in-out infinite;
+    position: relative;
+  }
+  .radar-blip-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    filter: brightness(1.1) contrast(1.05);
+  }
+  .radar-blip-foto-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: linear-gradient(135deg, #065F46, #047857);
+  }
+  .radar-blip-ring {
+    position: absolute;
+    inset: -4px;
+    border: 2px solid rgba(16,185,129,0.6);
+    border-radius: 50%;
+    animation: blipRingExpand 2s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes blipFotoPulse {
+    0%, 100% { box-shadow: 0 0 12px #10B981, 0 0 24px rgba(16,185,129,0.5); }
+    50% { box-shadow: 0 0 20px #10B981, 0 0 36px rgba(16,185,129,0.8); }
+  }
+  @keyframes blipRingExpand {
+    0% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
   }
   .radar-blip-label {
     position: absolute;
@@ -3918,7 +3960,7 @@ function mostrarFormEditar(r, modalDetalle) {
     font-weight: 800;
     font-family: monospace;
     white-space: nowrap;
-    margin-top: 6px;
+    margin-top: 8px;
     letter-spacing: 1px;
   }
 </style>
@@ -4450,6 +4492,13 @@ function renderizarRadar() {
     if (blip) {
       blip.style.left = x + '%';
       blip.style.top = y + '%';
+      // Actualizar distancia en el label
+      const label = blip.querySelector('.radar-blip-label');
+      if (label) {
+        const nombreUp = ((r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'TARGET').toUpperCase().substring(0,12);
+        const distUp = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'M' : r.distancia.toFixed(1) + 'KM';
+        label.textContent = nombreUp + ' · ' + distUp;
+      }
     } else {
       blip = document.createElement('div');
       blip.className = 'radar-blip';
@@ -4460,7 +4509,17 @@ function renderizarRadar() {
       const nombre = (r.nombre && r.nombre.toLowerCase() !== 'nn') ? r.nombre : 'TARGET';
       const dist = r.distancia < 1 ? Math.round(r.distancia * 1000) + 'M' : r.distancia.toFixed(1) + 'KM';
 
-      blip.innerHTML = `<div class="radar-blip-label">${nombre.toUpperCase().substring(0,12)} · ${dist}</div>`;
+      const fotoHtml = r.foto_url
+        ? `<img src="${r.foto_url}" alt="${nombre}" onerror="this.parentElement.innerHTML='<div class=&quot;radar-blip-foto-fallback&quot;>🐕</div>'"/>`
+        : '<div class="radar-blip-foto-fallback">🐕</div>';
+
+      blip.innerHTML = `
+        <div class="radar-blip-ring"></div>
+        <div class="radar-blip-foto">
+          ${fotoHtml}
+        </div>
+        <div class="radar-blip-label">${nombre.toUpperCase().substring(0,12)} · ${dist}</div>
+      `;
 
       blip.onclick = () => {
         cerrarModoAR();

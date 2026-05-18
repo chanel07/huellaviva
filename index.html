@@ -5388,8 +5388,13 @@ function renderTarjetaMuro(p) {
   const mensajeWA = encodeURIComponent('Hola, vi tu publicación en HuellaViva: ' + p.titulo);
   const linkWA = telLimpio ? `https://wa.me/57${telLimpio}?text=${mensajeWA}` : '';
 
+  // Verificar si la publicación es del usuario
+  const esMia = esPublicacionMia(p.id);
+  const estaResuelta = p.resuelta === true;
+
   return `
-    <div class="muro-card" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+    <div class="muro-card" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);${estaResuelta?'opacity:0.7;':''}">
+      ${estaResuelta?'<div style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;text-align:center;padding:6px;font-size:11px;font-weight:800;letter-spacing:1px;">✅ RESUELTO</div>':''}
       <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="background:${cat.color};color:#fff;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:0.5px;">${cat.emoji} ${cat.label}</span>
@@ -5402,13 +5407,66 @@ function renderTarjetaMuro(p) {
         <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--text);">${escapeHTML(p.titulo)}</div>
         ${p.barrio ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">📍 ${escapeHTML(p.barrio)}</div>` : ''}
         <div style="font-size:13px;color:var(--text);line-height:1.4;margin-bottom:10px;">${escapeHTML(p.descripcion)}</div>
-        <div style="display:flex;gap:6px;">
-          ${linkWA ? `<a href="${linkWA}" target="_blank" rel="noopener" style="flex:1;background:#25D366;color:#fff;border:none;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center;text-decoration:none;display:block;">💬 WhatsApp</a>` : ''}
-          <button onclick="compartirPublicacionMuro('${p.id}')" style="flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🔗 Compartir</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${linkWA ? `<a href="${linkWA}" target="_blank" rel="noopener" style="flex:1;min-width:120px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center;text-decoration:none;display:block;">💬 WhatsApp</a>` : ''}
+          <button onclick="compartirPublicacionMuro('${p.id}')" style="flex:1;min-width:100px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🔗 Compartir</button>
         </div>
+        ${esMia && !estaResuelta ? `
+          <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+            <button onclick="marcarResuelto('${p.id}')" style="flex:1;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:10px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">✅ Marcar resuelto</button>
+            <button onclick="borrarMiPublicacion('${p.id}')" style="background:var(--bg);color:#EF4444;border:1px solid #EF4444;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️</button>
+          </div>
+        ` : ''}
+        ${esMia && estaResuelta ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
+            <button onclick="borrarMiPublicacion('${p.id}')" style="width:100%;background:var(--bg);color:#EF4444;border:1px solid #EF4444;border-radius:10px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️ Borrar publicación</button>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
+}
+
+function esPublicacionMia(pubId) {
+  try {
+    const mias = JSON.parse(localStorage.getItem('mis_publicaciones_muro') || '[]');
+    return mias.indexOf(pubId) !== -1;
+  } catch(e) { return false; }
+}
+
+async function marcarResuelto(pubId) {
+  if (!confirm('✅ ¿Marcar esta publicación como RESUELTA?\n\nQuedará visible pero atenuada, mostrando que ya se resolvió.')) return;
+
+  try {
+    await supabase('PATCH', 'muro_publicaciones?id=eq.' + pubId, { resuelta: true });
+    mostrarToast('✅ Publicación marcada como resuelta');
+    cargarMuro();
+  } catch(e) {
+    console.error(e);
+    alert('Error al marcar como resuelto');
+  }
+}
+
+async function borrarMiPublicacion(pubId) {
+  if (!confirm('🗑️ ¿Borrar tu publicación?\n\nEsta acción NO se puede deshacer.')) return;
+
+  try {
+    // Desactivar (soft delete) - es más seguro que DELETE completo
+    await supabase('PATCH', 'muro_publicaciones?id=eq.' + pubId, { activa: false });
+
+    // Quitar de mis publicaciones en localStorage
+    try {
+      const mias = JSON.parse(localStorage.getItem('mis_publicaciones_muro') || '[]');
+      const filtradas = mias.filter(id => id !== pubId);
+      localStorage.setItem('mis_publicaciones_muro', JSON.stringify(filtradas));
+    } catch(e) {}
+
+    mostrarToast('🗑️ Publicación borrada');
+    cargarMuro();
+  } catch(e) {
+    console.error(e);
+    alert('Error al borrar');
+  }
 }
 
 function escapeHTML(str) {
@@ -5477,7 +5535,7 @@ function abrirCrearPublicacion() {
 
       <div style="margin-bottom:14px;">
         <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);">Foto (recomendado)</label>
-        <input type="file" id="pub-foto" accept="image/*" capture="environment" style="width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-size:13px;"/>
+        <input type="file" id="pub-foto" accept="image/*" style="width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-size:13px;"/>
         <div id="pub-foto-preview" style="display:none;margin-top:8px;"><img id="pub-foto-img" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;"/></div>
       </div>
 
@@ -5561,7 +5619,7 @@ async function enviarPublicacion() {
     }
 
     btnEnviar.textContent = '📤 Publicando...';
-    await supabase('POST', 'muro_publicaciones', {
+    const respuesta = await supabase('POST', 'muro_publicaciones', {
       categoria, titulo, descripcion, foto_url,
       autor_nombre: nombre || 'Anónimo',
       autor_telefono: telefono,
@@ -5569,6 +5627,15 @@ async function enviarPublicacion() {
       lat: ubicacionReal ? userLat : null,
       lng: ubicacionReal ? userLng : null
     });
+
+    // Guardar ID en localStorage para permitir borrar/editar después
+    try {
+      const mias = JSON.parse(localStorage.getItem('mis_publicaciones_muro') || '[]');
+      if (respuesta && respuesta[0] && respuesta[0].id) {
+        mias.push(respuesta[0].id);
+        localStorage.setItem('mis_publicaciones_muro', JSON.stringify(mias));
+      }
+    } catch(e) { console.warn('No se pudo guardar referencia', e); }
 
     document.getElementById('modal-crear-pub').remove();
     mostrarToast('✅ ¡Publicación creada!');

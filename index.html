@@ -4159,9 +4159,42 @@ async function iniciarModoAR() {
     document.getElementById('ar-video').srcObject = arStream;
 
     document.getElementById('ar-loading-status').textContent = 'Detectando ubicación GPS...';
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-    });
+
+    // Intentar GPS - primero con alta precisión, luego con baja si falla
+    let pos = null;
+    try {
+      pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 60000  // Acepta ubicación de hasta 1 min de antigüedad
+        });
+      });
+    } catch (errGPS) {
+      // Si falló con alta precisión, intentar de nuevo con baja precisión (más rápido)
+      console.warn('GPS alta precisión falló, intentando con baja...', errGPS);
+      document.getElementById('ar-loading-status').textContent = 'GPS impreciso, intentando otra forma...';
+      try {
+        pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000  // Acepta ubicación de hasta 5 min
+          });
+        });
+      } catch (errGPS2) {
+        // Falló también - mostrar mensaje claro
+        document.getElementById('ar-loading-status').innerHTML =
+          '<div style="text-align:center;">' +
+          '<div style="font-size:32px;margin-bottom:10px;">📍</div>' +
+          '<div style="color:#EF4444;font-weight:800;margin-bottom:6px;">No se pudo obtener tu ubicación</div>' +
+          '<div style="color:#fff;font-size:12px;opacity:0.8;margin-bottom:14px;">Activa el GPS en tu celular y dale permiso de ubicación al navegador.</div>' +
+          '<button onclick="iniciarModoAR()" style="background:#EC4899;color:#fff;border:none;border-radius:14px;padding:10px 20px;font-weight:800;font-size:13px;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;">🔄 Reintentar</button>' +
+          '</div>';
+        return; // Detener aquí - el usuario decide
+      }
+    }
+
     arUserPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
     // Verificar precisión GPS

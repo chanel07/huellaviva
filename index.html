@@ -837,38 +837,7 @@ function showTab(name) {
     if (sessionStorage.getItem('destacar_boton_ar') === '1') {
       sessionStorage.removeItem('destacar_boton_ar');
       setTimeout(() => {
-        // Encontrar el botón AR (el SVG de radar verde)
-        const btnAR = document.querySelector('button[onclick="iniciarModoAR()"]');
-        if (btnAR) {
-          // Animación de parpadeo extendida
-          btnAR.style.transition = 'transform 0.3s, box-shadow 0.3s';
-          btnAR.style.animation = 'destacarBotonAR 0.8s ease-in-out 10';
-
-          // Crear tooltip flotante "Toca para volver al Radar AR"
-          let tooltip = document.getElementById('ar-tooltip-volver');
-          if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.id = 'ar-tooltip-volver';
-            tooltip.style.cssText = 'position:fixed;bottom:90px;left:80px;z-index:998;background:linear-gradient(135deg,#10B981,#059669);color:#fff;padding:8px 12px;border-radius:14px;font-size:11px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 16px rgba(16,185,129,0.5);border:2px solid #fff;animation:tooltipBounce 0.5s ease;display:flex;align-items:center;gap:6px;cursor:pointer;';
-            tooltip.innerHTML = '<span style="font-size:14px;">👈</span><span>Volver al Radar AR</span>';
-            tooltip.onclick = () => {
-              tooltip.remove();
-              iniciarModoAR();
-            };
-            document.body.appendChild(tooltip);
-          }
-
-          // Auto-quitar animación + tooltip después de 8 segundos
-          setTimeout(() => {
-            btnAR.style.animation = '';
-            const tt = document.getElementById('ar-tooltip-volver');
-            if (tt) {
-              tt.style.transition = 'opacity 0.4s ease';
-              tt.style.opacity = '0';
-              setTimeout(() => { if (tt.parentNode) tt.remove(); }, 400);
-            }
-          }, 8000);
-        }
+        if (typeof activarTooltipVolverAR === 'function') activarTooltipVolverAR();
       }, 400);
     }
   }
@@ -4148,6 +4117,46 @@ let arUltimoRender = 0;
 let arRenderPendiente = false;
 let arMode = 'ar'; // 'ar' o 'radar'
 
+// Función global para activar tooltip "Volver al AR" - usable desde cualquier lugar
+function activarTooltipVolverAR() {
+  // Si la pantalla activa NO es el mapa, no mostrar (no tiene sentido)
+  const screenMapa = document.getElementById('screen-mapa');
+  if (!screenMapa || !screenMapa.classList.contains('active')) return;
+
+  // Encontrar el botón AR (el SVG de radar verde)
+  const btnAR = document.querySelector('button[onclick="iniciarModoAR()"]');
+  if (!btnAR) return;
+
+  // Animación de parpadeo extendida
+  btnAR.style.transition = 'transform 0.3s, box-shadow 0.3s';
+  btnAR.style.animation = 'destacarBotonAR 0.8s ease-in-out 10';
+
+  // Crear tooltip flotante "Volver al Radar AR"
+  let tooltip = document.getElementById('ar-tooltip-volver');
+  if (tooltip) tooltip.remove(); // Si ya existe, lo quitamos para recrear con animación
+
+  tooltip = document.createElement('div');
+  tooltip.id = 'ar-tooltip-volver';
+  tooltip.style.cssText = 'position:fixed;bottom:90px;left:80px;z-index:998;background:linear-gradient(135deg,#10B981,#059669);color:#fff;padding:8px 12px;border-radius:14px;font-size:11px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 16px rgba(16,185,129,0.5);border:2px solid #fff;animation:tooltipBounce 0.5s ease;display:flex;align-items:center;gap:6px;cursor:pointer;';
+  tooltip.innerHTML = '<span style="font-size:14px;">👈</span><span>Volver al Radar AR</span>';
+  tooltip.onclick = () => {
+    tooltip.remove();
+    iniciarModoAR();
+  };
+  document.body.appendChild(tooltip);
+
+  // Auto-quitar animación + tooltip después de 8 segundos
+  setTimeout(() => {
+    if (btnAR) btnAR.style.animation = '';
+    const tt = document.getElementById('ar-tooltip-volver');
+    if (tt) {
+      tt.style.transition = 'opacity 0.4s ease';
+      tt.style.opacity = '0';
+      setTimeout(() => { if (tt.parentNode) tt.remove(); }, 400);
+    }
+  }, 8000);
+}
+
 async function iniciarModoAR() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert('Tu celular no soporta cámara en el navegador. Intenta con Chrome.');
@@ -5223,7 +5232,28 @@ function bindArButtons() {
 
       // Cerrar AR y abrir detalle
       cerrarModoAR();
-      setTimeout(() => verDetalle(id), 350);
+      setTimeout(() => {
+        verDetalle(id);
+        // Esperar a que el modal exista para agregar listener de cierre
+        setTimeout(() => {
+          // Buscar el modal recién creado (último div hijo del body con position:fixed)
+          const modales = document.querySelectorAll('body > div[style*="position:fixed"][style*="z-index:9999"]');
+          const modalDetalle = modales[modales.length - 1];
+          if (modalDetalle) {
+            // Cuando el modal sea removido del DOM, activar tooltip
+            const observer = new MutationObserver(() => {
+              if (!document.body.contains(modalDetalle)) {
+                observer.disconnect();
+                // Modal cerrado - activar tooltip si seguimos en mapa
+                setTimeout(() => {
+                  if (typeof activarTooltipVolverAR === 'function') activarTooltipVolverAR();
+                }, 200);
+              }
+            });
+            observer.observe(document.body, { childList: true });
+          }
+        }, 100);
+      }, 350);
     };
   }
 }

@@ -151,6 +151,8 @@
       <div class="stat-card"><div class="stat-num" id="s-inactivos" style="color:var(--muted)">-</div><div class="stat-label">Resueltos</div></div>
       <div class="stat-card" style="cursor:pointer;border-color:#7C3AED44" onclick="filtrarMatches()"><div class="stat-num" id="s-matches" style="color:#7C3AED">-</div><div class="stat-label">🤖 Matches IA</div></div>
       <div class="stat-card" style="border-color:#EC489944"><div class="stat-num" id="s-mascotas" style="color:#EC4899">-</div><div class="stat-label">🐕 Mi Mascota</div></div>
+      <div class="stat-card" style="border-color:#10B98144;cursor:pointer;" onclick="document.getElementById('seccion-muro').scrollIntoView({behavior:'smooth'})"><div class="stat-num" id="s-muro" style="color:#10B981">-</div><div class="stat-label">📰 Muro</div></div>
+      <div class="stat-card" style="border-color:#DC262644;cursor:pointer;" onclick="document.getElementById('seccion-muro').scrollIntoView({behavior:'smooth'})"><div class="stat-num" id="s-reportes" style="color:#DC2626">-</div><div class="stat-label">🚩 Reportes</div></div>
     </div>
 
     <div class="section-title">Todos los reportes</div>
@@ -166,6 +168,23 @@
 
     <div id="reportes-lista"><div class="loading">Cargando reportes...</div></div>
     <div id="matches-lista" class="matches-section"></div>
+
+    <!-- ============ SECCIÓN MURO ============ -->
+    <div id="seccion-muro" style="margin-top:40px;padding-top:20px;border-top:2px solid var(--border);">
+      <div class="section-title">📰 Muro de la Comunidad</div>
+      <div class="filters">
+        <button class="filter-btn active" onclick="filtrarMuro('todos', this)">Todos</button>
+        <button class="filter-btn" onclick="filtrarMuro('reportadas', this)" style="border-color:#DC262644;color:#DC2626">🚩 Reportadas</button>
+        <button class="filter-btn" onclick="filtrarMuro('perdido', this)">Perdido</button>
+        <button class="filter-btn" onclick="filtrarMuro('encontrado', this)">Encontrado</button>
+        <button class="filter-btn" onclick="filtrarMuro('adopcion', this)">Adopción</button>
+        <button class="filter-btn" onclick="filtrarMuro('ayuda', this)">Ayuda</button>
+        <button class="filter-btn" onclick="filtrarMuro('urgente', this)">Urgente</button>
+        <button class="filter-btn" onclick="filtrarMuro('resueltas', this)">✅ Resueltas</button>
+        <button class="filter-btn" onclick="filtrarMuro('inactivas', this)">🗑️ Borradas</button>
+      </div>
+      <div id="muro-admin-lista"><div class="loading">Cargando muro...</div></div>
+    </div>
   </div>
 </div>
 
@@ -187,6 +206,7 @@ function login() {
     document.getElementById('login-wrap').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
     cargarReportes();
+    cargarMuroAdmin();
   } else {
     document.getElementById('login-error').style.display = 'block';
   }
@@ -491,6 +511,175 @@ if ('serviceWorker' in navigator) {
   const swBlob = new Blob([swCode], { type: 'application/javascript' });
   const swUrl = URL.createObjectURL(swBlob);
   navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// ============ GESTIÓN MURO ============
+let muroAdminTodas = [];
+let muroAdminReportes = {};
+let muroFiltroActual = 'todos';
+
+async function cargarMuroAdmin() {
+  try {
+    // Cargar todas las publicaciones (incluso inactivas y ocultas)
+    const resP = await fetch(SUPABASE_URL + '/rest/v1/muro_publicaciones?order=fecha_creacion.desc', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    muroAdminTodas = await resP.json();
+
+    // Cargar reportes agrupados
+    const resR = await fetch(SUPABASE_URL + '/rest/v1/muro_reportes?order=fecha.desc', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    const reportes = await resR.json();
+    muroAdminReportes = {};
+    reportes.forEach(r => {
+      if (!muroAdminReportes[r.publicacion_id]) muroAdminReportes[r.publicacion_id] = [];
+      muroAdminReportes[r.publicacion_id].push(r);
+    });
+
+    // Stats
+    const activas = muroAdminTodas.filter(p => p.activa);
+    document.getElementById('s-muro').textContent = activas.length;
+    document.getElementById('s-reportes').textContent = Object.keys(muroAdminReportes).length;
+
+    renderMuroAdmin();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('muro-admin-lista').innerHTML = '<div class="loading">Error cargando muro</div>';
+  }
+}
+
+function filtrarMuro(filtro, btn) {
+  muroFiltroActual = filtro;
+  if (btn) {
+    btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderMuroAdmin();
+}
+
+function renderMuroAdmin() {
+  const cont = document.getElementById('muro-admin-lista');
+  if (!cont) return;
+
+  let lista = [...muroAdminTodas];
+
+  if (muroFiltroActual === 'reportadas') {
+    lista = lista.filter(p => muroAdminReportes[p.id]);
+  } else if (muroFiltroActual === 'resueltas') {
+    lista = lista.filter(p => p.resuelta);
+  } else if (muroFiltroActual === 'inactivas') {
+    lista = lista.filter(p => !p.activa);
+  } else if (muroFiltroActual !== 'todos') {
+    lista = lista.filter(p => p.categoria === muroFiltroActual && p.activa);
+  } else {
+    lista = lista.filter(p => p.activa);
+  }
+
+  if (lista.length === 0) {
+    cont.innerHTML = '<div class="loading">No hay publicaciones en este filtro</div>';
+    return;
+  }
+
+  const categorias = {
+    perdido:    { emoji: '🚨', label: 'Perdido',    color: '#EF4444' },
+    encontrado: { emoji: '✨', label: 'Encontrado', color: '#10B981' },
+    adopcion:   { emoji: '🏠', label: 'Adopción',   color: '#7C3AED' },
+    ayuda:      { emoji: '💉', label: 'Ayuda',      color: '#F59E0B' },
+    urgente:    { emoji: '🆘', label: 'Urgente',    color: '#DC2626' }
+  };
+
+  cont.innerHTML = lista.map(p => {
+    const cat = categorias[p.categoria] || { emoji: '🐾', label: 'Otro', color: '#6B7280' };
+    const fecha = new Date(p.fecha_creacion).toLocaleString('es-CO');
+    const fotoSrc = p.foto_url || '';
+    const reportes = muroAdminReportes[p.id] || [];
+    const reportesHTML = reportes.length > 0
+      ? `<div style="background:#FEE2E2;color:#DC2626;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;margin-top:8px;">🚩 ${reportes.length} reporte(s): ${reportes.map(r => r.motivo).join(', ')}</div>`
+      : '';
+    const estadosHTML = [
+      !p.activa ? '<span style="background:#6B728022;color:#6B7280;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-right:4px;">🗑️ BORRADA</span>' : '',
+      p.resuelta ? '<span style="background:#10B98122;color:#10B981;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-right:4px;">✅ RESUELTA</span>' : '',
+      p.oculta ? '<span style="background:#DC262622;color:#DC2626;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;margin-right:4px;">⚠️ OCULTA</span>' : ''
+    ].join('');
+
+    return `
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;${!p.activa?'opacity:0.6;':''}">
+        <div style="display:flex;gap:12px;">
+          ${fotoSrc ? `<img src="${fotoSrc}" style="width:80px;height:80px;border-radius:10px;object-fit:cover;flex-shrink:0;"/>` : `<div style="width:80px;height:80px;border-radius:10px;background:${cat.color}22;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;">${cat.emoji}</div>`}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+              <span style="background:${cat.color};color:#fff;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;">${cat.emoji} ${cat.label}</span>
+              ${estadosHTML}
+            </div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${(p.titulo||'').replace(/</g,'&lt;')}</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">📍 ${p.barrio||'Sin barrio'} · 👤 ${p.autor_nombre||'Anónimo'} · 📞 ${p.autor_telefono||'-'}</div>
+            <div style="font-size:11px;color:var(--muted);">${fecha}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">${(p.descripcion||'').replace(/</g,'&lt;')}</div>
+        ${reportesHTML}
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          ${p.activa ? `<button onclick="borrarPubAdmin('${p.id}')" style="background:#EF4444;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">🗑️ Borrar</button>` : `<button onclick="restaurarPubAdmin('${p.id}')" style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">♻️ Restaurar</button>`}
+          ${p.oculta ? `<button onclick="mostrarPubAdmin('${p.id}')" style="background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">👁️ Mostrar</button>` : ''}
+          ${reportes.length > 0 ? `<button onclick="limpiarReportesPub('${p.id}')" style="background:#F59E0B;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;">✅ Marcar como revisada</button>` : ''}
+          ${p.autor_telefono ? `<a href="https://wa.me/57${p.autor_telefono.replace(/\\D/g,'')}" target="_blank" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;">💬 WhatsApp</a>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function borrarPubAdmin(id) {
+  if (!confirm('🗑️ ¿Borrar esta publicación?\\n\\nQuedará marcada como inactiva (puedes restaurarla).')) return;
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/muro_publicaciones?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ activa: false })
+    });
+    cargarMuroAdmin();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function restaurarPubAdmin(id) {
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/muro_publicaciones?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ activa: true })
+    });
+    cargarMuroAdmin();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function mostrarPubAdmin(id) {
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/muro_publicaciones?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ oculta: false, reportes_count: 0 })
+    });
+    cargarMuroAdmin();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function limpiarReportesPub(id) {
+  if (!confirm('Marcar la publicación como revisada y borrar los reportes acumulados?')) return;
+  try {
+    // Borrar reportes
+    await fetch(SUPABASE_URL + '/rest/v1/muro_reportes?publicacion_id=eq.' + id, {
+      method: 'DELETE',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' }
+    });
+    // Resetear contador y desocultar
+    await fetch(SUPABASE_URL + '/rest/v1/muro_publicaciones?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ reportes_count: 0, oculta: false })
+    });
+    cargarMuroAdmin();
+  } catch(e) { alert('Error: ' + e.message); }
 }
 </script>
 </body>

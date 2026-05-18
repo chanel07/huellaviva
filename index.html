@@ -5234,35 +5234,34 @@ function bindArButtons() {
       cerrarModoAR();
       setTimeout(() => {
         verDetalle(id);
-        // Interceptar el onclick del modal recién creado para activar tooltip al cerrar
+
+        // POLLING: vigilar cuando el modal de detalle se cierre
+        // Este método es 100% confiable - funciona sin importar cómo se cierre el modal
         setTimeout(() => {
-          // El modal de verDetalle es el último div con z-index:9999 agregado al body
+          // Capturar referencia al modal recién creado
           const modales = document.querySelectorAll('body > div[style*="position:fixed"]');
           let modalDetalle = null;
-          // Buscar el más reciente con z-index 9999
           for (let i = modales.length - 1; i >= 0; i--) {
-            if (modales[i].style.zIndex === '9999' || modales[i].style.cssText.includes('z-index:9999')) {
+            const s = modales[i].style.cssText || '';
+            if (s.includes('z-index:9999') || modales[i].style.zIndex === '9999') {
               modalDetalle = modales[i];
               break;
             }
           }
-          if (modalDetalle) {
-            // Guardar el onclick original
-            const onclickOriginal = modalDetalle.onclick;
-            // Sobrescribir con un wrapper que activa el tooltip
-            modalDetalle.onclick = (e) => {
-              const targetEsModal = (e.target === modalDetalle);
-              // Llamar al original (que cierra el modal si target es el modal)
-              if (onclickOriginal) onclickOriginal.call(modalDetalle, e);
-              // Si se cerró el modal, activar tooltip
-              if (targetEsModal) {
-                setTimeout(() => {
-                  if (typeof activarTooltipVolverAR === 'function') activarTooltipVolverAR();
-                }, 100);
-              }
-            };
-          }
-        }, 50);
+          if (!modalDetalle) return;
+
+          // Polling cada 200ms para detectar cuando el modal desaparezca
+          const intervalo = setInterval(() => {
+            if (!document.body.contains(modalDetalle)) {
+              clearInterval(intervalo);
+              // Modal cerrado - activar tooltip INMEDIATAMENTE
+              if (typeof activarTooltipVolverAR === 'function') activarTooltipVolverAR();
+            }
+          }, 200);
+
+          // Safety: detener el polling después de 5 minutos máximo
+          setTimeout(() => clearInterval(intervalo), 5 * 60 * 1000);
+        }, 100);
       }, 350);
     };
   }

@@ -840,10 +840,34 @@ function showTab(name) {
         // Encontrar el botón AR (el SVG de radar verde)
         const btnAR = document.querySelector('button[onclick="iniciarModoAR()"]');
         if (btnAR) {
+          // Animación de parpadeo extendida
           btnAR.style.transition = 'transform 0.3s, box-shadow 0.3s';
-          btnAR.style.animation = 'destacarBotonAR 0.8s ease-in-out 5';
-          // Quitar la animación después de 5 ciclos (~4 segundos)
-          setTimeout(() => { btnAR.style.animation = ''; }, 4500);
+          btnAR.style.animation = 'destacarBotonAR 0.8s ease-in-out 10';
+
+          // Crear tooltip flotante "Toca para volver al Radar AR"
+          let tooltip = document.getElementById('ar-tooltip-volver');
+          if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'ar-tooltip-volver';
+            tooltip.style.cssText = 'position:fixed;bottom:90px;left:80px;z-index:998;background:linear-gradient(135deg,#10B981,#059669);color:#fff;padding:8px 12px;border-radius:14px;font-size:11px;font-weight:800;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 16px rgba(16,185,129,0.5);border:2px solid #fff;animation:tooltipBounce 0.5s ease;display:flex;align-items:center;gap:6px;cursor:pointer;';
+            tooltip.innerHTML = '<span style="font-size:14px;">👈</span><span>Volver al Radar AR</span>';
+            tooltip.onclick = () => {
+              tooltip.remove();
+              iniciarModoAR();
+            };
+            document.body.appendChild(tooltip);
+          }
+
+          // Auto-quitar animación + tooltip después de 8 segundos
+          setTimeout(() => {
+            btnAR.style.animation = '';
+            const tt = document.getElementById('ar-tooltip-volver');
+            if (tt) {
+              tt.style.transition = 'opacity 0.4s ease';
+              tt.style.opacity = '0';
+              setTimeout(() => { if (tt.parentNode) tt.remove(); }, 400);
+            }
+          }, 8000);
         }
       }, 400);
     }
@@ -4077,6 +4101,11 @@ function mostrarFormEditar(r, modalDetalle) {
   @keyframes destacarBotonAR {
     0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(16,185,129,0.6), 0 0 24px rgba(16,185,129,0.3); }
     50% { transform: scale(1.2); box-shadow: 0 4px 40px rgba(16,185,129,1), 0 0 60px rgba(16,185,129,0.8); }
+  }
+  @keyframes tooltipBounce {
+    0% { opacity: 0; transform: translateX(-20px) scale(0.8); }
+    60% { opacity: 1; transform: translateX(5px) scale(1.05); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
   }
   .ar-fade-transition {
     transition: opacity 0.4s ease;

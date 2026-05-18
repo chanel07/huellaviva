@@ -300,14 +300,6 @@
 </head>
 <body>
 
-<!-- BOTÓN FLOTANTE GLOBAL "VOLVER AL AR" (siempre visible cuando hay flag) -->
-<div id="volver-ar-btn" style="display:none;position:fixed;top:14px;right:14px;z-index:99990;animation:bounceIn 0.5s ease;">
-  <button onclick="volverAlAR()" style="background:linear-gradient(135deg,#10B981,#059669);border:2px solid #fff;border-radius:24px;padding:9px 14px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;font-family:Plus Jakarta Sans,sans-serif;box-shadow:0 4px 20px rgba(16,185,129,0.6);display:flex;align-items:center;gap:6px;">
-    <span style="font-size:14px;">📡</span>
-    <span>Volver al Radar AR</span>
-  </button>
-</div>
-
 <div id="splash" style="position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#7C3AED,#5B21B6);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.5s ease;">
   <div style="position:relative;width:120px;height:120px;">
     <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,0.3);animation:sp-ring 2s ease-out infinite;"></div>
@@ -841,8 +833,20 @@ function showTab(name) {
     cargarMapa();
     cargarCards('mapa');
     setTimeout(() => { if(mapInstance) mapInstance.invalidateSize(); }, 200);
-    // Si veníamos del AR (después de Ver detalle), mostrar botón para volver
-    if (typeof mostrarBotonVolverAR === 'function') mostrarBotonVolverAR();
+    // Plan B: si el usuario vino de "Ver detalle" del AR, destacar botón AR
+    if (sessionStorage.getItem('destacar_boton_ar') === '1') {
+      sessionStorage.removeItem('destacar_boton_ar');
+      setTimeout(() => {
+        // Encontrar el botón AR (el SVG de radar verde)
+        const btnAR = document.querySelector('button[onclick="iniciarModoAR()"]');
+        if (btnAR) {
+          btnAR.style.transition = 'transform 0.3s, box-shadow 0.3s';
+          btnAR.style.animation = 'destacarBotonAR 0.8s ease-in-out 5';
+          // Quitar la animación después de 5 ciclos (~4 segundos)
+          setTimeout(() => { btnAR.style.animation = ''; }, 4500);
+        }
+      }, 400);
+    }
   }
   if (name === 'perdidos') cargarCards('perdidos');
   if (name === 'encontrados') cargarCards('encontrados');
@@ -4070,6 +4074,10 @@ function mostrarFormEditar(r, modalDetalle) {
     50% { opacity: 1; transform: scale(1.1) translateY(0); }
     100% { opacity: 1; transform: scale(1); }
   }
+  @keyframes destacarBotonAR {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(16,185,129,0.6), 0 0 24px rgba(16,185,129,0.3); }
+    50% { transform: scale(1.2); box-shadow: 0 4px 40px rgba(16,185,129,1), 0 0 60px rgba(16,185,129,0.8); }
+  }
   .ar-fade-transition {
     transition: opacity 0.4s ease;
   }
@@ -4110,25 +4118,6 @@ let arHeadingAnterior = null;
 let arUltimoRender = 0;
 let arRenderPendiente = false;
 let arMode = 'ar'; // 'ar' o 'radar'
-
-// ============ VOLVER AL AR (cuando viene de "Ver detalle") ============
-function volverAlAR() {
-  sessionStorage.removeItem('volver_a_ar');
-  const btn = document.getElementById('volver-ar-btn');
-  if (btn) btn.style.display = 'none';
-  // Reactivar el modo AR
-  iniciarModoAR();
-}
-
-function mostrarBotonVolverAR() {
-  const btn = document.getElementById('volver-ar-btn');
-  if (!btn) return;
-  if (sessionStorage.getItem('volver_a_ar') === '1') {
-    btn.style.display = 'block';
-  } else {
-    btn.style.display = 'none';
-  }
-}
 
 async function iniciarModoAR() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -5071,6 +5060,12 @@ async function compartirVistaAR() {
 }
 
 function cerrarModoAR() {
+  // Limpiar cualquier flag obsoleto de versiones anteriores
+  sessionStorage.removeItem('volver_a_ar');
+  sessionStorage.removeItem('volver_a_ar_ts');
+  const btnObsoleto = document.getElementById('volver-ar-btn');
+  if (btnObsoleto) btnObsoleto.remove();
+
   if (arStream) {
     arStream.getTracks().forEach(t => t.stop());
     arStream = null;
@@ -5161,15 +5156,10 @@ function bindArButtons() {
         return;
       }
 
-      // OPCIÓN B: Cerrar AR y abrir detalle normal
-      // Marcar que veníamos del AR para mostrar botón "Volver al AR"
-      sessionStorage.setItem('volver_a_ar', '1');
+      // Marcar que el botón AR del mapa debe parpadear (Plan B Radical)
+      sessionStorage.setItem('destacar_boton_ar', '1');
 
-      // Mostrar el botón AHORA mismo (antes de cerrar AR) - así estará visible
-      // cuando el usuario cierre el modal de detalle
-      const btnVolver = document.getElementById('volver-ar-btn');
-      if (btnVolver) btnVolver.style.display = 'block';
-
+      // Cerrar AR y abrir detalle
       cerrarModoAR();
       setTimeout(() => verDetalle(id), 350);
     };
@@ -5179,7 +5169,6 @@ function bindArButtons() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     bindArButtons();
-    if (typeof mostrarBotonVolverAR === 'function') mostrarBotonVolverAR();
   });
 } else {
   bindArButtons();

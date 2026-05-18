@@ -5234,25 +5234,35 @@ function bindArButtons() {
       cerrarModoAR();
       setTimeout(() => {
         verDetalle(id);
-        // Esperar a que el modal exista para agregar listener de cierre
+        // Interceptar el onclick del modal recién creado para activar tooltip al cerrar
         setTimeout(() => {
-          // Buscar el modal recién creado (último div hijo del body con position:fixed)
-          const modales = document.querySelectorAll('body > div[style*="position:fixed"][style*="z-index:9999"]');
-          const modalDetalle = modales[modales.length - 1];
+          // El modal de verDetalle es el último div con z-index:9999 agregado al body
+          const modales = document.querySelectorAll('body > div[style*="position:fixed"]');
+          let modalDetalle = null;
+          // Buscar el más reciente con z-index 9999
+          for (let i = modales.length - 1; i >= 0; i--) {
+            if (modales[i].style.zIndex === '9999' || modales[i].style.cssText.includes('z-index:9999')) {
+              modalDetalle = modales[i];
+              break;
+            }
+          }
           if (modalDetalle) {
-            // Cuando el modal sea removido del DOM, activar tooltip
-            const observer = new MutationObserver(() => {
-              if (!document.body.contains(modalDetalle)) {
-                observer.disconnect();
-                // Modal cerrado - activar tooltip si seguimos en mapa
+            // Guardar el onclick original
+            const onclickOriginal = modalDetalle.onclick;
+            // Sobrescribir con un wrapper que activa el tooltip
+            modalDetalle.onclick = (e) => {
+              const targetEsModal = (e.target === modalDetalle);
+              // Llamar al original (que cierra el modal si target es el modal)
+              if (onclickOriginal) onclickOriginal.call(modalDetalle, e);
+              // Si se cerró el modal, activar tooltip
+              if (targetEsModal) {
                 setTimeout(() => {
                   if (typeof activarTooltipVolverAR === 'function') activarTooltipVolverAR();
-                }, 200);
+                }, 100);
               }
-            });
-            observer.observe(document.body, { childList: true });
+            };
           }
-        }, 100);
+        }, 50);
       }, 350);
     };
   }

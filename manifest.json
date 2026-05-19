@@ -1,21 +1,35 @@
 {
-  "name": "HuellaViva",
+  "name": "HuellaViva - Mascotas Santa Marta",
   "short_name": "HuellaViva",
+  "description": "Reúne perros perdidos con sus familias en Santa Marta. Realidad aumentada, radar y comunidad de mascotas.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7C3AED",
-  "description": "Reporta y encuentra perros perdidos en Santa Marta, Colombia.",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#10B981",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "categories": ["lifestyle", "social", "utilities"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

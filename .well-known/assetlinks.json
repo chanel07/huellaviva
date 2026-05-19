@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.huellavivaapp",
-        "sha256_cert_fingerprints": ["E9:CF:2E:E9:8D:65:89:97:D9:38:4E:B8:E5:02:49:01:74:8E:BB:47:DD:39:C9:60:1D:D0:A5:71:69:0F:10:E4"]
+        "package_name": "com.huellavivaapp.twa",
+        "sha256_cert_fingerprints": ["24:2C:3A:EF:B5:96:A8:1F:F0:17:BC:BE:ED:C2:0A:A2:85:0F:09:50:E8:3E:4B:A1:FC:C0:7C:C8:7D:20:8E:FC"]
       }
     }]

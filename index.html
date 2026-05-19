@@ -720,35 +720,39 @@ body.dark {
   <div class="screen-header" style="background:linear-gradient(135deg,#10B981,#059669);">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div class="screen-header-title">📰 Muro de la Comunidad</div>
-        <div class="screen-header-sub">Publicaciones de samarios para samarios</div>
+        <div class="screen-header-title">📰 HuellaViva</div>
+        <div class="screen-header-sub">Comunidad samaria de mascotas</div>
       </div>
       <button onclick="abrirInfoMuro()" style="background:rgba(255,255,255,0.2);border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;color:#fff;">?</button>
     </div>
   </div>
 
-  <!-- Botón para publicar -->
-  <div style="padding:12px 16px;">
-    <button onclick="abrirCrearPublicacion()" style="width:100%;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 18px rgba(16,185,129,0.45);display:flex;align-items:center;justify-content:center;gap:8px;">
-      <span style="font-size:18px;">✏️</span>
-      <span>Crear publicación</span>
-    </button>
+  <!-- Composer estilo Facebook -->
+  <div style="padding:12px 14px 8px;background:var(--bg);">
+    <div onclick="abrirCrearPublicacion()" style="background:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.15s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
+      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0;">✏️</div>
+      <div style="flex:1;color:#6B7280;font-size:14px;">¿Pasó algo con una mascota?</div>
+      <div style="background:#10B98115;color:#10B981;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📷</div>
+    </div>
   </div>
 
   <!-- Filtros de categorías -->
-  <div style="padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+  <div style="padding:4px 14px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg);">
     <div id="muro-filtros" style="display:flex;gap:8px;white-space:nowrap;padding-bottom:4px;">
       <button onclick="filtrarMuro('todo')" data-cat="todo" class="muro-filtro-btn activo" style="background:#10B981;color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">TODO</button>
-      <button onclick="filtrarMuro('perdido')" data-cat="perdido" class="muro-filtro-btn" style="background:var(--surface);color:var(--text);border:1.5px solid #EF4444;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🚨 Perdido</button>
-      <button onclick="filtrarMuro('encontrado')" data-cat="encontrado" class="muro-filtro-btn" style="background:var(--surface);color:var(--text);border:1.5px solid #10B981;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✨ Encontrado</button>
-      <button onclick="filtrarMuro('adopcion')" data-cat="adopcion" class="muro-filtro-btn" style="background:var(--surface);color:var(--text);border:1.5px solid #7C3AED;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🏠 Adopción</button>
-      <button onclick="filtrarMuro('ayuda')" data-cat="ayuda" class="muro-filtro-btn" style="background:var(--surface);color:var(--text);border:1.5px solid #F59E0B;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">💉 Ayuda</button>
-      <button onclick="filtrarMuro('urgente')" data-cat="urgente" class="muro-filtro-btn" style="background:var(--surface);color:var(--text);border:1.5px solid #DC2626;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🆘 Urgente</button>
+      <button onclick="filtrarMuro('perdido')" data-cat="perdido" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #FEE2E2;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🚨 Perdido</button>
+      <button onclick="filtrarMuro('encontrado')" data-cat="encontrado" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #D1FAE5;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✨ Encontrado</button>
+      <button onclick="filtrarMuro('adopcion')" data-cat="adopcion" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #EDE9FE;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🏠 Adopción</button>
+      <button onclick="filtrarMuro('ayuda')" data-cat="ayuda" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #FEF3C7;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">💉 Ayuda</button>
+      <button onclick="filtrarMuro('urgente')" data-cat="urgente" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #FEE2E2;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🆘 Urgente</button>
+      <button onclick="filtrarMuro('noticia')" data-cat="noticia" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #E0F2FE;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">📰 Noticia</button>
+      <button onclick="filtrarMuro('evento')" data-cat="evento" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #F3E8FF;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">📅 Evento</button>
+      <button onclick="filtrarMuro('info')" data-cat="info" class="muro-filtro-btn" style="background:#fff;color:#1F2937;border:1.5px solid #FCE7F3;border-radius:20px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">💡 Info</button>
     </div>
   </div>
 
   <!-- Feed de publicaciones -->
-  <div id="muro-feed" style="padding:0 16px 80px;">
+  <div id="muro-feed" style="padding:0 14px 80px;background:var(--bg);min-height:calc(100vh - 200px);">
     <div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
       <div style="font-size:42px;margin-bottom:12px;">📰</div>
       <div style="font-weight:700;margin-bottom:6px;">Cargando publicaciones...</div>
@@ -5370,61 +5374,103 @@ function renderMuroFeed() {
 
 function renderTarjetaMuro(p) {
   const categorias = {
-    perdido:    { emoji: '🚨', label: 'PERDIDO',    color: '#EF4444' },
-    encontrado: { emoji: '✨', label: 'ENCONTRADO', color: '#10B981' },
-    adopcion:   { emoji: '🏠', label: 'ADOPCIÓN',   color: '#7C3AED' },
-    ayuda:      { emoji: '💉', label: 'AYUDA',      color: '#F59E0B' },
-    urgente:    { emoji: '🆘', label: 'URGENTE',    color: '#DC2626' }
+    perdido:    { emoji: '🚨', label: 'PERDIDO',    color: '#EF4444', bg: '#FEE2E2' },
+    encontrado: { emoji: '✨', label: 'ENCONTRADO', color: '#10B981', bg: '#D1FAE5' },
+    adopcion:   { emoji: '🏠', label: 'ADOPCIÓN',   color: '#7C3AED', bg: '#EDE9FE' },
+    ayuda:      { emoji: '💉', label: 'AYUDA',      color: '#F59E0B', bg: '#FEF3C7' },
+    urgente:    { emoji: '🆘', label: 'URGENTE',    color: '#DC2626', bg: '#FEE2E2' },
+    noticia:    { emoji: '📰', label: 'NOTICIA',    color: '#0EA5E9', bg: '#E0F2FE' },
+    evento:     { emoji: '📅', label: 'EVENTO',     color: '#8B5CF6', bg: '#F3E8FF' },
+    info:       { emoji: '💡', label: 'INFO',       color: '#EC4899', bg: '#FCE7F3' }
   };
-  const cat = categorias[p.categoria] || { emoji: '🐾', label: 'OTRO', color: '#6B7280' };
+  const cat = categorias[p.categoria] || { emoji: '🐾', label: 'OTRO', color: '#6B7280', bg: '#F3F4F6' };
 
   const tiempo = tiempoTranscurrido(p.fecha_creacion);
-  const fotoOpt = optimizarFotoAR(p.foto_url, 400);
+  const fotoOpt = optimizarFotoMuro(p.foto_url);
+  // Foto SIN object-fit:cover - mantiene proporciones naturales
   const fotoHTML = fotoOpt
-    ? `<img src="${fotoOpt}" loading="lazy" style="width:100%;height:200px;object-fit:cover;display:block;"/>`
-    : `<div style="width:100%;height:200px;background:linear-gradient(135deg,${cat.color}33,${cat.color}66);display:flex;align-items:center;justify-content:center;font-size:64px;">${cat.emoji}</div>`;
+    ? `<div style="background:#000;display:flex;align-items:center;justify-content:center;"><img src="${fotoOpt}" loading="lazy" style="width:100%;max-height:500px;object-fit:contain;display:block;"/></div>`
+    : '';
 
   const telLimpio = (p.autor_telefono || '').replace(/\D/g, '');
   const mensajeWA = encodeURIComponent('Hola, vi tu publicación en HuellaViva: ' + p.titulo);
   const linkWA = telLimpio ? `https://wa.me/57${telLimpio}?text=${mensajeWA}` : '';
+
+  // Avatar con iniciales
+  const nombre = p.autor_nombre || 'Anónimo';
+  const iniciales = nombre.split(' ').slice(0, 2).map(n => n[0] || '').join('').toUpperCase() || '👤';
 
   // Verificar si la publicación es del usuario
   const esMia = esPublicacionMia(p.id);
   const estaResuelta = p.resuelta === true;
 
   return `
-    <div class="muro-card" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);${estaResuelta?'opacity:0.7;':''}">
-      ${estaResuelta?'<div style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;text-align:center;padding:6px;font-size:11px;font-weight:800;letter-spacing:1px;">✅ RESUELTO</div>':''}
-      <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="background:${cat.color};color:#fff;border-radius:14px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:0.5px;">${cat.emoji} ${cat.label}</span>
-          <span style="color:var(--text-muted);font-size:11px;">${tiempo}</span>
+    <div class="muro-card" style="background:#fff;border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);">
+      ${estaResuelta?'<div style="background:linear-gradient(135deg,#10B981,#059669);color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:800;letter-spacing:1px;">✅ RESUELTO</div>':''}
+
+      <!-- Header del post tipo Facebook -->
+      <div style="padding:12px 14px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:center;flex:1;min-width:0;">
+          <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,${cat.color},${cat.color}CC);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">${iniciales}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:14px;color:#1F2937;line-height:1.2;">${escapeHTML(nombre)}</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280;margin-top:1px;flex-wrap:wrap;">
+              <span>${tiempo}</span>
+              ${p.barrio ? `<span>·</span><span>📍 ${escapeHTML(p.barrio)}</span>` : ''}
+              <span>·</span><span style="display:inline-flex;align-items:center;gap:2px;background:${cat.bg};color:${cat.color};padding:1px 7px;border-radius:8px;font-weight:700;font-size:10px;">${cat.emoji} ${cat.label}</span>
+            </div>
+          </div>
         </div>
-        <button onclick="abrirMenuPublicacion('${p.id}')" style="background:transparent;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:4px 8px;">⋮</button>
+        <button onclick="abrirMenuPublicacion('${p.id}')" style="background:transparent;border:none;color:#6B7280;font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;">⋮</button>
       </div>
+
+      <!-- Título y descripción -->
+      <div style="padding:0 14px 12px;">
+        <div style="font-weight:700;font-size:15px;color:#1F2937;line-height:1.35;margin-bottom:4px;">${escapeHTML(p.titulo)}</div>
+        <div style="font-size:14px;color:#374151;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;">${escapeHTML(p.descripcion)}</div>
+      </div>
+
+      <!-- Foto (sin recortar) -->
       ${fotoHTML}
-      <div style="padding:12px 14px;">
-        <div style="font-weight:800;font-size:15px;margin-bottom:4px;color:var(--text);">${escapeHTML(p.titulo)}</div>
-        ${p.barrio ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">📍 ${escapeHTML(p.barrio)}</div>` : ''}
-        <div style="font-size:13px;color:var(--text);line-height:1.4;margin-bottom:10px;">${escapeHTML(p.descripcion)}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${linkWA ? `<a href="${linkWA}" target="_blank" rel="noopener" style="flex:1;min-width:120px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);text-align:center;text-decoration:none;display:block;">💬 WhatsApp</a>` : ''}
-          <button onclick="compartirPublicacionMuro('${p.id}')" style="flex:1;min-width:100px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🔗 Compartir</button>
+
+      <!-- Stats (vista/reportes) -->
+      ${(p.vistas > 0) ? `
+        <div style="padding:8px 14px;border-top:1px solid #F3F4F6;font-size:12px;color:#6B7280;display:flex;gap:12px;">
+          <span>👁️ ${p.vistas} vistas</span>
         </div>
-        ${esMia && !estaResuelta ? `
-          <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
-            <button onclick="marcarResuelto('${p.id}')" style="flex:1;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;border-radius:10px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">✅ Marcar resuelto</button>
-            <button onclick="borrarMiPublicacion('${p.id}')" style="background:var(--bg);color:#EF4444;border:1px solid #EF4444;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️</button>
-          </div>
-        ` : ''}
-        ${esMia && estaResuelta ? `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);">
-            <button onclick="borrarMiPublicacion('${p.id}')" style="width:100%;background:var(--bg);color:#EF4444;border:1px solid #EF4444;border-radius:10px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️ Borrar publicación</button>
-          </div>
-        ` : ''}
+      ` : ''}
+
+      <!-- Acciones estilo Facebook -->
+      <div style="border-top:1px solid #F3F4F6;padding:6px;display:flex;gap:2px;">
+        ${linkWA ? `<a href="${linkWA}" target="_blank" rel="noopener" style="flex:1;text-decoration:none;color:#374151;background:transparent;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'"><span style="font-size:18px;">💬</span><span>WhatsApp</span></a>` : ''}
+        <button onclick="compartirPublicacionMuro('${p.id}')" style="flex:1;background:transparent;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);color:#374151;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.2s;" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background='transparent'"><span style="font-size:18px;">📤</span><span>Compartir</span></button>
       </div>
+
+      <!-- Acciones del DUEÑO (solo si es mía) -->
+      ${esMia && !estaResuelta ? `
+        <div style="border-top:1px solid #F3F4F6;padding:8px;display:flex;gap:6px;background:#F9FAFB;">
+          <button onclick="marcarResuelto('${p.id}')" style="flex:1;background:#10B981;color:#fff;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✅ Marcar resuelto</button>
+          <button onclick="borrarMiPublicacion('${p.id}')" style="background:#fff;color:#EF4444;border:1px solid #FCA5A5;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️</button>
+        </div>
+      ` : ''}
+      ${esMia && estaResuelta ? `
+        <div style="border-top:1px solid #F3F4F6;padding:8px;background:#F9FAFB;">
+          <button onclick="borrarMiPublicacion('${p.id}')" style="width:100%;background:#fff;color:#EF4444;border:1px solid #FCA5A5;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">🗑️ Borrar publicación</button>
+        </div>
+      ` : ''}
     </div>
   `;
+}
+
+// Versión específica para el muro con altura adaptable
+function optimizarFotoMuro(url) {
+  if (!url) return '';
+  if (url.indexOf('cloudinary.com') !== -1 && url.indexOf('/upload/') !== -1) {
+    if (url.match(/\/upload\/[^/]*[wch]_\d+/)) return url;
+    // Solo ajustamos ancho, dejamos altura natural
+    return url.replace('/upload/', '/upload/c_limit,w_900,q_auto,f_auto/');
+  }
+  return url;
 }
 
 function esPublicacionMia(pubId) {
@@ -5492,17 +5538,23 @@ function tiempoTranscurrido(fecha) {
 
 function filtrarMuro(categoria) {
   muroCategoriaActiva = categoria;
-  // Actualizar estilo de botones
   document.querySelectorAll('.muro-filtro-btn').forEach(btn => {
     const esActivo = btn.dataset.cat === categoria;
     if (esActivo) {
       btn.classList.add('activo');
       btn.style.background = '#10B981';
       btn.style.color = '#fff';
+      btn.style.borderColor = '#10B981';
     } else {
       btn.classList.remove('activo');
-      btn.style.background = 'var(--surface)';
-      btn.style.color = 'var(--text)';
+      btn.style.background = '#fff';
+      btn.style.color = '#1F2937';
+      const colores = {
+        perdido: '#FEE2E2', encontrado: '#D1FAE5', adopcion: '#EDE9FE',
+        ayuda: '#FEF3C7', urgente: '#FEE2E2',
+        noticia: '#E0F2FE', evento: '#F3E8FF', info: '#FCE7F3'
+      };
+      btn.style.borderColor = colores[btn.dataset.cat] || '#E5E7EB';
     }
   });
   renderMuroFeed();
@@ -5525,11 +5577,14 @@ function abrirCrearPublicacion() {
       <div style="margin-bottom:14px;">
         <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);">¿De qué se trata?</label>
         <select id="pub-categoria" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text);font-family:var(--font);">
-          <option value="perdido">🚨 Mi perro se perdió</option>
-          <option value="encontrado">✨ Encontré un perro</option>
+          <option value="perdido">🚨 Mi perro/gato se perdió</option>
+          <option value="encontrado">✨ Encontré un perro/gato</option>
           <option value="adopcion">🏠 En adopción</option>
           <option value="ayuda">💉 Necesito ayuda (medicina/comida/dinero)</option>
           <option value="urgente">🆘 URGENTE (herido/atropellado)</option>
+          <option value="noticia">📰 Noticia o comunicado</option>
+          <option value="evento">📅 Evento (esterilización, vacunación, jornada)</option>
+          <option value="info">💡 Información útil / Tip</option>
         </select>
       </div>
 
@@ -5541,12 +5596,12 @@ function abrirCrearPublicacion() {
 
       <div style="margin-bottom:14px;">
         <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);">Título corto *</label>
-        <input id="pub-titulo" type="text" placeholder="Ej: Perro Toby perdido en Pescaíto" maxlength="80" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text);font-family:var(--font);"/>
+        <input id="pub-titulo" type="text" placeholder="Ej: Jornada de esterilización gratuita" maxlength="80" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text);font-family:var(--font);"/>
       </div>
 
       <div style="margin-bottom:14px;">
         <label style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text);">Descripción *</label>
-        <textarea id="pub-descripcion" placeholder="Cuenta los detalles..." rows="4" maxlength="500" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text);font-family:var(--font);resize:vertical;"></textarea>
+        <textarea id="pub-descripcion" placeholder="Cuéntanos los detalles..." rows="4" maxlength="500" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text);font-family:var(--font);resize:vertical;"></textarea>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -5734,11 +5789,15 @@ function compartirPublicacionMuro(pubId) {
 function abrirInfoMuro() {
   alert(
     '📰 MURO DE LA COMUNIDAD\n\n' +
-    'Aquí puedes:\n' +
-    '🚨 Reportar perros perdidos o encontrados\n' +
-    '🏠 Publicar mascotas en adopción\n' +
-    '💉 Pedir ayuda (medicina, alimento)\n' +
-    '🆘 Avisar emergencias (perros heridos)\n\n' +
+    'Aquí puedes publicar:\n\n' +
+    '🚨 Perros/gatos perdidos\n' +
+    '✨ Hallados\n' +
+    '🏠 En adopción\n' +
+    '💉 Pedidos de ayuda (medicina, comida)\n' +
+    '🆘 Emergencias (heridos, atropellados)\n' +
+    '📰 Noticias y comunicados\n' +
+    '📅 Eventos (esterilización, vacunación)\n' +
+    '💡 Información útil y tips\n\n' +
     'La gente te contactará por WhatsApp directamente.\n\n' +
     '⚠️ Si ves contenido inapropiado, toca ⋮ y repórtalo.'
   );

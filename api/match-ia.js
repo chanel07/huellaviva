@@ -1,14 +1,5 @@
-// /api/match-ia.js — Compara un perro encontrado vs lista de perdidos usando Gemini Vision
-// Variables de entorno requeridas en Vercel:
-//   GEMINI_API_KEY  -> tu key de Google AI Studio (https://aistudio.google.com/apikey)
-//
-// Modelo: gemini-2.5-flash (free tier: 10 RPM, 500 RPD, 250K TPM)
-// NOTA: Gemini 2.0 Flash fue deprecado en feb 2026 y se apaga el 24-sep-2026.
-//
-// IMPORTANTE sobre privacidad del free tier:
-// Google puede usar prompts e imágenes del free tier para mejorar sus modelos.
-// Por eso NO mandamos teléfonos ni datos personales en el payload.
-// Si necesitas privacidad estricta, activa Cloud Billing (Tier 1) → datos no se usan para entrenamiento.
+// /api/match-ia.js — Compara perro encontrado vs lista de perdidos usando Gemini Vision
+// VERSION CON RETRY AUTOMATICO PARA ERRORES 503
 
 export const config = { runtime: 'nodejs', maxDuration: 60 };
 
@@ -16,31 +7,43 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export default async function handler(req, res) {
-  // CORS básico (permite que el frontend lo llame)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada' });
+  // ACEPTA AMBOS NOMBRES DE VARIABLE PARA EVITAR PROBLEMAS DE CONFIG
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY;
+  if (!apiKey) {
+    console.error('Falta GEMINI_API_KEY o GEMINI_KEY en variables de entorno');
+    return res.status(500).json({ error: 'GEMINI_API_KEY no configurada' });
+  }
 
   try {
     const { encontrado, perdidos } = req.body || {};
-    if (!encontrado || !encontrado.foto_url) return res.status(400).json({ error: 'Falta encontrado.foto_url' });
-    if (!Array.isArray(perdidos) || !perdidos.length) return res.status(200).json({ matches: [] });
+    if (!encontrado || !encontrado.foto_url) {
+      return res.status(400).json({ error: 'Falta encontrado.foto_url' });
+    }
+    if (!Array.isArray(perdidos) || !perdidos.length) {
+      console.log('match-ia: lista de perdidos vacia');
+      return res.status(200).json({ matches: [] });
+    }
 
-    // Limitar a 12 perdidos por llamada para no exceder contexto
+    console.log(`match-ia: comparando 1 encontrado vs ${perdidos.length} perdidos`);
+
     const candidatos = perdidos.slice(0, 12);
 
-    // Descargar todas las imágenes en paralelo y convertir a base64
+    // Descargar imagenes
     const imgEncontrado = await fetchImageBase64(encontrado.foto_url);
     const imgsPerdidos = await Promise.all(
-      candidatos.map(p => fetchImageBase64(p.foto_url).catch(() => null))
+      candidatos.map(p => fetchImageBase64(p.foto_url).catch(err => {
+        console.error('Error descargando imagen perdido:', p.id, err.message);
+        return null;
+      }))
     );
 
-    // Construir prompt — una sola llamada con todas las imágenes
+    // Construir prompt
     const parts = [
       { text: buildPrompt(encontrado, candidatos) },
       { text: '\n\n=== FOTO DEL PERRO ENCONTRADO ===' },
@@ -78,24 +81,18 @@ export default async function handler(req, res) {
       }
     };
 
-    const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    // LLAMADA A GEMINI CON RETRY AUTOMATICO
+    const data = await llamarGeminiConReintentos(apiKey, body, 3);
 
-    if (!resp.ok) {
-      const errTxt = await resp.text();
-      console.error('Gemini error:', resp.status, errTxt);
-      return res.status(502).json({ error: 'Gemini fallo', detalle: errTxt.slice(0, 300) });
+    const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    console.log('match-ia respuesta cruda de Gemini:', txt.substring(0, 300));
+
+    let parsed;
+    try { parsed = JSON.parse(txt); } catch (e) {
+      console.error('match-ia: error parseando JSON:', e.message);
+      parsed = { matches: [] };
     }
 
-    const data = await resp.json();
-    const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    let parsed;
-    try { parsed = JSON.parse(txt); } catch { parsed = { matches: [] }; }
-
-    // Normalizar: asegurar que perdido_id corresponda a uno real
     const idsValidos = new Set(candidatos.map(c => String(c.id)));
     const matches = (parsed.matches || [])
       .filter(m => idsValidos.has(String(m.perdido_id)))
@@ -105,10 +102,67 @@ export default async function handler(req, res) {
         razones: (m.razones || '').slice(0, 280)
       }));
 
-    return res.status(200).json({ matches, modelo: GEMINI_MODEL, comparados: candidatos.length });
+    console.log(`match-ia: ${matches.length} matches encontrados (de ${candidatos.length} comparados)`);
+
+    return res.status(200).json({
+      matches,
+      modelo: GEMINI_MODEL,
+      comparados: candidatos.length
+    });
   } catch (e) {
     console.error('match-ia handler error:', e);
     return res.status(500).json({ error: 'Error interno', detalle: String(e.message || e) });
+  }
+}
+
+// FUNCION CON RETRY PARA LIDIAR CON ERRORES 503/429/500 DE GEMINI
+async function llamarGeminiConReintentos(apiKey, body, maxIntentos = 3) {
+  let ultimoError = null;
+
+  for (let intento = 1; intento <= maxIntentos; intento++) {
+    try {
+      const resp = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      // Si responde 503 (sobrecargado), 429 (rate limit) o 500, reintentar
+      if (resp.status === 503 || resp.status === 429 || resp.status === 500) {
+        const errTxt = await resp.text();
+        ultimoError = `${resp.status}: ${errTxt.slice(0, 200)}`;
+        console.log(`Intento ${intento} fallo con status ${resp.status}. Reintentando...`);
+
+        if (intento < maxIntentos) {
+          const esperaMs = Math.pow(2, intento) * 1000; // 2s, 4s, 8s
+          await new Promise(r => setTimeout(r, esperaMs));
+          continue;
+        }
+        throw new Error(`Gemini sigue saturado despues de ${maxIntentos} intentos: ${ultimoError}`);
+      }
+
+      if (!resp.ok) {
+        const errTxt = await resp.text();
+        console.error('Gemini error no recuperable:', resp.status, errTxt);
+        throw new Error(`Gemini fallo: ${resp.status} - ${errTxt.slice(0, 200)}`);
+      }
+
+      // Respuesta OK
+      const data = await resp.json();
+      console.log(`Gemini OK en intento ${intento}`);
+      return data;
+
+    } catch (err) {
+      ultimoError = err.message;
+      console.error(`Intento ${intento} - error:`, err.message);
+
+      if (intento < maxIntentos) {
+        const esperaMs = Math.pow(2, intento) * 1000;
+        await new Promise(r => setTimeout(r, esperaMs));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 

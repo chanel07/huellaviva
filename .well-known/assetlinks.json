@@ -1,8 +1,11 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.huellavivaapp.twa",
-        "sha256_cert_fingerprints": ["24:2C:3A:EF:B5:96:A8:1F:F0:17:BC:BE:ED:C2:0A:A2:85:0F:09:50:E8:3E:4B:A1:FC:C0:7C:C8:7D:20:8E:FC"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.huellavivaapp.twa",
+    "sha256_cert_fingerprints": [
+      "24:2C:3A:EF:B5:96:A8:1F:F0:17:BC:BE:ED:C2:0A:A2:85:0F:09:50:E8:3E:4B:A1:FC:C0:7C:C8:7D:20:8E:FC",
+      "43:8E:2E:D8:54:24:D1:C8:11:07:30:3C:E1:8F:07:D0:BF:B0:B7:F5:C9:87:C0:3C:E2:91:B6:0A:EB:A9:9B:97"
+    ]
+  }
+}]

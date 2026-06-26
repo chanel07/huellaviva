@@ -880,10 +880,11 @@ function showToast(msg, type) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SISTEMA DE NAVEGACIÓN CON BOTÓN ATRÁS
+// SISTEMA DE NAVEGACIÓN CON BOTÓN ATRÁS (v2 - MÁS ROBUSTO)
 // ═══════════════════════════════════════════════════════════
 let navStack = ['inicio']; // Pila de pantallas visitadas
 let isNavigatingBack = false; // Flag para evitar loops
+let backButtonInitialized = false; // Flag de inicialización
 
 function showTab(name, isBackNavigation = false) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -898,7 +899,12 @@ function showTab(name, isBackNavigation = false) {
   if (!isBackNavigation && !isNavigatingBack) {
     if (navStack[navStack.length - 1] !== name) {
       navStack.push(name);
-      history.pushState({ screen: name }, '', '#' + name);
+      // Push doble para mayor robustez
+      try {
+        history.pushState({ screen: name, ts: Date.now() }, '', '#' + name);
+      } catch(e) {
+        console.warn('Error pushState:', e);
+      }
     }
   }
   
@@ -921,70 +927,316 @@ function showTab(name, isBackNavigation = false) {
   if (name === 'muro') cargarMuro();
 }
 
-// Escuchar el botón atrás del celular
-window.addEventListener('popstate', function(e) {
-  // Primero: si hay un modal abierto, cerrarlo
-  const modalesAbiertos = document.querySelectorAll(
-    '[style*="z-index:99999"], [style*="z-index: 99999"], ' +
-    '[style*="z-index:99998"], [style*="z-index: 99998"], ' +
-    '.match-modal-bg'
-  );
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE ZOOM PARA FOTOS DE MASCOTAS
+// ═══════════════════════════════════════════════════════════
+function abrirZoomFoto(url, nombre) {
+  // Empujar al historial para que botón atrás cierre el zoom
+  try {
+    history.pushState({ modal: 'zoomFoto', ts: Date.now() }, '', '#zoom');
+  } catch(e) {}
   
-  if (modalesAbiertos.length > 0) {
-    // Cerrar el modal más reciente
-    const ultimoModal = modalesAbiertos[modalesAbiertos.length - 1];
-    if (ultimoModal && ultimoModal.parentNode) {
-      ultimoModal.remove();
-      // Empujar otra entrada al historial para que el siguiente atrás también funcione
-      history.pushState({ screen: navStack[navStack.length - 1] }, '', '#' + navStack[navStack.length - 1]);
-      return;
-    }
+  const modal = document.createElement('div');
+  modal.className = 'zoom-modal-fullscreen';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;';
+  
+  // Header con info y botón cerrar
+  const header = document.createElement('div');
+  header.style.cssText = 'position:absolute;top:0;left:0;right:0;padding:16px 20px;background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);display:flex;justify-content:space-between;align-items:center;z-index:100001;';
+  header.innerHTML = `
+    <div style="color:#fff;font-weight:700;font-size:15px;">🐾 ${nombre}</div>
+    <div style="display:flex;gap:8px;">
+      <button id="zoomFotoReset" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">↻ Reset</button>
+      <button id="zoomFotoCerrar" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 12px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;">✕</button>
+    </div>
+  `;
+  modal.appendChild(header);
+  
+  // Contenedor de la imagen con zoom
+  const container = document.createElement('div');
+  container.style.cssText = 'width:100%;height:100%;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;';
+  
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;transition:transform 0.2s ease-out;transform-origin:center center;cursor:zoom-in;user-select:none;-webkit-user-drag:none;pointer-events:auto;';
+  img.draggable = false;
+  
+  container.appendChild(img);
+  modal.appendChild(container);
+  
+  // Footer con instrucciones
+  const footer = document.createElement('div');
+  footer.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:16px 20px;background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);text-align:center;z-index:100001;';
+  footer.innerHTML = `
+    <div style="color:rgba(255,255,255,0.9);font-size:13px;font-weight:600;margin-bottom:4px;">
+      👆👆 Doble toque para zoom · 🤏 Pellizca con 2 dedos
+    </div>
+    <div style="color:rgba(255,255,255,0.6);font-size:11px;">
+      Arrastra para mover cuando estés con zoom
+    </div>
+  `;
+  modal.appendChild(footer);
+  
+  document.body.appendChild(modal);
+  
+  // ═══════════════════════════════════════════════════════════
+  // LÓGICA DE ZOOM
+  // ═══════════════════════════════════════════════════════════
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+  let initialDistance = 0;
+  let initialScale = 1;
+  let isPanning = false;
+  let startX = 0;
+  let startY = 0;
+  let lastTap = 0;
+  
+  function applyTransform() {
+    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    img.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
   }
   
-  // Si hay AR/Radar/Cámara activos, cerrarlos
+  function resetZoom() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    applyTransform();
+  }
+  
+  function getDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  
+  // PINCH ZOOM (2 dedos)
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      initialDistance = getDistance(e.touches);
+      initialScale = scale;
+    } else if (e.touches.length === 1) {
+      // Detectar doble tap
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        // Doble tap detectado
+        e.preventDefault();
+        if (scale === 1) {
+          scale = 2.5;
+        } else {
+          resetZoom();
+        }
+        applyTransform();
+        lastTap = 0;
+      } else {
+        lastTap = now;
+        // Preparar para pan
+        if (scale > 1) {
+          isPanning = true;
+          startX = e.touches[0].clientX - translateX;
+          startY = e.touches[0].clientY - translateY;
+        }
+      }
+    }
+  }, { passive: false });
+  
+  container.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      // PINCH ZOOM
+      e.preventDefault();
+      const distance = getDistance(e.touches);
+      const newScale = (distance / initialDistance) * initialScale;
+      scale = Math.max(1, Math.min(5, newScale));
+      
+      // Si volvió a escala 1, resetear posición
+      if (scale === 1) {
+        translateX = 0;
+        translateY = 0;
+      }
+      applyTransform();
+    } else if (e.touches.length === 1 && isPanning && scale > 1) {
+      // PAN (mover con un dedo cuando hay zoom)
+      e.preventDefault();
+      translateX = e.touches[0].clientX - startX;
+      translateY = e.touches[0].clientY - startY;
+      
+      // Limitar movimiento
+      const maxTranslate = (scale - 1) * 200;
+      translateX = Math.max(-maxTranslate, Math.min(maxTranslate, translateX));
+      translateY = Math.max(-maxTranslate, Math.min(maxTranslate, translateY));
+      
+      applyTransform();
+    }
+  }, { passive: false });
+  
+  container.addEventListener('touchend', (e) => {
+    isPanning = false;
+  });
+  
+  // Para escritorio: doble click
+  img.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    if (scale === 1) {
+      scale = 2.5;
+    } else {
+      resetZoom();
+    }
+    applyTransform();
+  });
+  
+  // Para escritorio: rueda del mouse
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    scale = Math.max(1, Math.min(5, scale + delta));
+    if (scale === 1) {
+      translateX = 0;
+      translateY = 0;
+    }
+    applyTransform();
+  }, { passive: false });
+  
+  // ═══════════════════════════════════════════════════════════
+  // BOTONES Y CERRADO
+  // ═══════════════════════════════════════════════════════════
+  document.getElementById('zoomFotoReset').addEventListener('click', resetZoom);
+  
+  function cerrarZoom() {
+    modal.remove();
+    // Volver al historial anterior
+    try {
+      history.back();
+    } catch(e) {}
+  }
+  
+  document.getElementById('zoomFotoCerrar').addEventListener('click', cerrarZoom);
+  
+  // Tap en el fondo cierra (solo si no hay zoom activo)
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal && scale === 1) {
+      cerrarZoom();
+    }
+  });
+}
+
+// FUNCIÓN PRINCIPAL DE MANEJO DE ATRÁS
+function manejarBotonAtras(e) {
+  console.log('🔙 Botón atrás detectado. navStack:', navStack);
+  
+  // PRIORIDAD 1: Cerrar modales abiertos (busca CUALQUIER overlay)
+  // Detecta TODOS los divs flotantes que tapan la pantalla
+  const todosModales = Array.from(document.querySelectorAll('div')).filter(div => {
+    if (!div.style) return false;
+    const style = div.getAttribute('style') || '';
+    // Excluir las pantallas regulares
+    if (div.classList.contains('screen')) return false;
+    if (div.id && div.id.startsWith('screen-')) return false;
+    
+    // Detectar si es un modal flotante
+    const esPositionFixed = style.includes('position:fixed') || style.includes('position: fixed');
+    const tieneZIndex = style.includes('z-index:') || style.includes('z-index ');
+    const esFullScreen = style.includes('top:0') && style.includes('left:0') && style.includes('right:0') && style.includes('bottom:0');
+    
+    return esPositionFixed && (tieneZIndex || esFullScreen);
+  });
+  
+  // Filtrar solo los visibles (que estén en el DOM y se vean)
+  const modalesVisibles = todosModales.filter(m => {
+    return m.parentNode === document.body && m.offsetParent !== null;
+  });
+  
+  if (modalesVisibles.length > 0) {
+    // Tomar el modal más reciente (último agregado al body)
+    const ultimoModal = modalesVisibles[modalesVisibles.length - 1];
+    console.log('🔙 Cerrando modal/overlay:', ultimoModal);
+    ultimoModal.remove();
+    // Reagregar al historial para que próximo atrás también funcione
+    const actual = navStack[navStack.length - 1] || 'inicio';
+    try {
+      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
+    } catch(err) {}
+    return;
+  }
+  
+  // PRIORIDAD 2: Cerrar AR/Radar
   const arScreen = document.getElementById('ar-screen');
   const radarScreen = document.getElementById('radar-screen');
   
   if (arScreen && arScreen.style.display !== 'none' && arScreen.offsetParent !== null) {
+    console.log('🔙 Cerrando AR');
     if (typeof cerrarAR === 'function') cerrarAR();
-    history.pushState({ screen: navStack[navStack.length - 1] }, '', '#' + navStack[navStack.length - 1]);
+    const actual = navStack[navStack.length - 1] || 'inicio';
+    try {
+      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
+    } catch(err) {}
     return;
   }
   
   if (radarScreen && radarScreen.style.display !== 'none' && radarScreen.offsetParent !== null) {
+    console.log('🔙 Cerrando Radar');
     if (typeof cerrarRadar === 'function') cerrarRadar();
-    history.pushState({ screen: navStack[navStack.length - 1] }, '', '#' + navStack[navStack.length - 1]);
+    const actual = navStack[navStack.length - 1] || 'inicio';
+    try {
+      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
+    } catch(err) {}
     return;
   }
   
-  // Si hay más de una pantalla en la pila, volver a la anterior
+  // PRIORIDAD 3: Volver a pantalla anterior
   if (navStack.length > 1) {
-    navStack.pop(); // Remover la actual
+    console.log('🔙 Volviendo a pantalla anterior');
+    navStack.pop();
     const pantallaAnterior = navStack[navStack.length - 1];
     isNavigatingBack = true;
     showTab(pantallaAnterior, true);
     isNavigatingBack = false;
-  } else {
-    // Estamos en la pantalla raíz (inicio), 
-    // empujar otra entrada para evitar cierre accidental
-    history.pushState({ screen: 'inicio' }, '', '#inicio');
-    // Mostrar mensaje sutil
-    if (typeof toast === 'function') {
-      toast('Toca atrás de nuevo para salir');
-    }
-    // Si tocan atrás otra vez en 2 segundos, dejar cerrar
-    if (window.__lastBackPress && (Date.now() - window.__lastBackPress) < 2000) {
-      // Dejar cerrar la app
-      history.back();
-    }
-    window.__lastBackPress = Date.now();
+    return;
   }
-});
+  
+  // PRIORIDAD 4: Estamos en raíz, confirmar salir
+  console.log('🔙 En raíz, mostrar toast');
+  if (typeof toast === 'function') {
+    toast('Toca atrás de nuevo para salir');
+  } else {
+    // Toast manual si no existe la función
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:24px;z-index:99999;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+    t.textContent = 'Toca atrás de nuevo para salir';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+  }
+  
+  // Si tocan atrás 2 veces rápido (menos de 2 seg), permitir cerrar
+  if (window.__lastBackPress && (Date.now() - window.__lastBackPress) < 2000) {
+    console.log('🔙 Cerrando app');
+    window.__lastBackPress = 0;
+    // Salir definitivamente: dejar que el historial se vacíe
+    return;
+  }
+  window.__lastBackPress = Date.now();
+  
+  // Volver a empujar para evitar que se cierre
+  try {
+    history.pushState({ screen: 'inicio', ts: Date.now() }, '', '#inicio');
+  } catch(err) {}
+}
 
-// Inicializar el historial al cargar la app
-if (typeof window !== 'undefined') {
-  // Reemplazar el estado inicial
-  history.replaceState({ screen: 'inicio' }, '', '#inicio');
+// Registrar event listener (solo una vez)
+if (!backButtonInitialized) {
+  window.addEventListener('popstate', manejarBotonAtras);
+  backButtonInitialized = true;
+  
+  // Inicializar historial al cargar
+  if (typeof window !== 'undefined') {
+    try {
+      history.replaceState({ screen: 'inicio', ts: Date.now() }, '', '#inicio');
+      // Empujar UNA entrada extra para tener buffer
+      history.pushState({ screen: 'inicio', ts: Date.now() }, '', '#inicio');
+    } catch(e) {
+      console.warn('Error inicializando historial:', e);
+    }
+  }
 }
 
 function avatarPerro(r) {
@@ -3364,11 +3616,8 @@ function analizarTextoVoz(texto) {
 }
 
 function verFoto(src) {
-  const o = document.createElement('div');
-  o.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-  o.innerHTML = '<img src="'+src+'" style="max-width:95%;max-height:90vh;border-radius:16px;"/><div style="position:absolute;top:20px;right:20px;color:#fff;font-size:32px;">✕</div>';
-  o.onclick = () => document.body.removeChild(o);
-  document.body.appendChild(o);
+  // Usar el sistema de zoom completo
+  abrirZoomFoto(src, 'Foto');
 }
 
 cargarInicio();
@@ -3544,6 +3793,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 function verDetalle(id) {
   const r = window._rep && window._rep[id];
   if (!r) return;
+  // Empujar al historial para que botón atrás cierre el modal
+  try {
+    history.pushState({ modal: 'detalle', id: id, ts: Date.now() }, '', '#detalle-' + id);
+  } catch(e) {}
   const tagClass = r.tipo==='perdido'?'tag-lost':r.tipo==='encontrado'?'tag-found':'tag-avist';
   const label = r.tipo==='perdido'?'Perdido':r.tipo==='encontrado'?'Encontrado':'Vi un perro perdido';
   const fecha = r.created_at ? new Date(r.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '';
@@ -3553,7 +3806,7 @@ function verDetalle(id) {
   card.style.cssText = 'background:#F8F7FF;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;';
   card.innerHTML =
     '<div style="width:40px;height:4px;background:#E5E7EB;border-radius:2px;margin:0 auto 16px;"></div>' +
-    (r.foto_url ? '<img src="'+r.foto_url+'" style="width:100%;border-radius:14px;max-height:400px;object-fit:contain;background:#f3f4f6;margin-bottom:14px;" />' : '') +
+    (r.foto_url ? '<div style="position:relative;margin-bottom:14px;"><img src="'+r.foto_url+'" onclick="abrirZoomFoto(\''+r.foto_url+'\', \''+(r.nombre||'Mascota').replace(/\'/g,"\\'")+'\')" style="width:100%;border-radius:14px;max-height:400px;object-fit:contain;background:#f3f4f6;cursor:zoom-in;" /><div onclick="abrirZoomFoto(\''+r.foto_url+'\', \''+(r.nombre||'Mascota').replace(/\'/g,"\\'")+'\')" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;backdrop-filter:blur(8px);">🔍 Zoom</div></div>' : '') +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<div style="font-weight:800;font-size:19px;color:#1E1B4B;">'+(r.nombre||'Sin nombre')+'</div>' +
       '<span class="tag '+tagClass+'">'+label+'</span>' +

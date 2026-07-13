@@ -4477,9 +4477,32 @@ function abrirPaseo() {
   const totalCal = historial.reduce((s, p) => s + (p.calorias || 0), 0);
   const rachaActual = calcularRacha(historial);
   
+  // Verificar si tiene mascotas registradas
+  const misMascotas = (typeof getMisMascotas === 'function') ? getMisMascotas() : [];
+  const tieneMascotas = misMascotas.length > 0;
+  
+  // Banner invitación a registrar perro (solo si NO tiene mascotas)
+  const invitacionRegistrar = !tieneMascotas ? `
+    <div style="background:linear-gradient(135deg,#7C3AED,#EC4899);border-radius:16px;padding:16px;margin-bottom:16px;color:#fff;box-shadow:0 4px 20px rgba(124,58,237,0.35);">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div style="font-size:36px;animation:perritoLatido 1.8s ease-in-out infinite;">🐕</div>
+        <div style="flex:1;">
+          <div style="font-weight:800;font-size:15px;margin-bottom:2px;">¡Registra tu perro!</div>
+          <div style="font-size:11px;opacity:0.9;line-height:1.4;">Verás su foto, estadísticas y salud durante el paseo</div>
+        </div>
+      </div>
+      <button onclick="this.closest('.huellaviva-modal').remove(); abrirMiMascota();" style="width:100%;background:#fff;color:#7C3AED;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+        🐕 Registrar mi perro ahora
+      </button>
+      <div style="text-align:center;margin-top:6px;font-size:10px;opacity:0.85;">o continúa sin perro registrado ↓</div>
+    </div>
+  ` : '';
+  
   m.innerHTML = `
     <div style="max-width:480px;margin:0 auto;">
       <button onclick="this.closest('.huellaviva-modal').remove();" style="display:flex;align-items:center;gap:6px;background:#F3F4F6;border:none;color:#374151;padding:10px 16px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:16px;">← Volver</button>
+      
+      ${invitacionRegistrar}
       
       <div style="background:linear-gradient(135deg,#F59E0B,#DC2626);border-radius:20px;padding:24px;color:#fff;margin-bottom:20px;box-shadow:0 8px 32px rgba(245,158,11,0.4);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -4591,6 +4614,23 @@ function iniciarPaseo() {
         <button onclick="finalizarPaseo()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">🏁 Finalizar</button>
       </div>
       
+      ${paseoMascota ? `
+      <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(239,68,68,0.3));border:2px solid rgba(245,158,11,0.6);border-radius:16px;padding:12px;margin-bottom:16px;box-shadow:0 4px 20px rgba(245,158,11,0.25);">
+        <div style="position:relative;flex-shrink:0;">
+          ${paseoMascota.foto_url 
+            ? `<img src="${paseoMascota.foto_url}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #FBBF24;box-shadow:0 4px 12px rgba(0,0,0,0.3);"/>`
+            : `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#DC2626);display:flex;align-items:center;justify-content:center;font-size:32px;border:3px solid #FBBF24;">🐕</div>`
+          }
+          <div style="position:absolute;bottom:-2px;right:-2px;background:#10B981;width:20px;height:20px;border-radius:50%;border:2px solid #0F172A;display:flex;align-items:center;justify-content:center;font-size:10px;animation:pulse 1.5s infinite;">🐾</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:800;font-size:16px;color:#FBBF24;line-height:1.2;">${paseoMascota.nombre || 'Mi perro'}</div>
+          <div style="font-size:11px;color:#FDE68A;font-weight:600;margin-top:2px;">está paseando contigo 🐾</div>
+        </div>
+        <div style="font-size:22px;animation:perritoLatido 1.5s ease-in-out infinite;">🐕‍🦺</div>
+      </div>
+      ` : ''}
+      
       ${paseoObjetivo ? `
       <div id="paseo-objetivo-bar" style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px;opacity:0.85;">
@@ -4635,41 +4675,52 @@ function iniciarPaseo() {
       </div>
       
       ${paseoMascota ? `
-      <div id="panel-perro" style="background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.2));border:1px solid rgba(245,158,11,0.4);border-radius:16px;padding:14px;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="font-size:28px;">🐕</div>
-          <div style="flex:1;">
-            <div style="font-weight:800;font-size:14px;">${paseoMascota.nombre || 'Mi perro'}</div>
-            <div style="font-size:10px;opacity:0.8;">${paseoMascota.raza || 'Raza desconocida'}${paseoMascota.edad ? ' · ' + paseoMascota.edad + ' años' : ''}</div>
+      <div id="panel-perro" style="background:linear-gradient(135deg,rgba(245,158,11,0.25),rgba(239,68,68,0.25));border:2px solid rgba(245,158,11,0.5);border-radius:20px;padding:16px;margin-bottom:16px;box-shadow:0 4px 20px rgba(245,158,11,0.2);">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+          <div style="position:relative;flex-shrink:0;">
+            ${paseoMascota.foto_url 
+              ? `<img src="${paseoMascota.foto_url}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #F59E0B;box-shadow:0 4px 12px rgba(245,158,11,0.4);"/>`
+              : `<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#DC2626);display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid #FBBF24;">🐕</div>`
+            }
+            <div style="position:absolute;bottom:-2px;right:-2px;background:#10B981;width:20px;height:20px;border-radius:50%;border:2px solid #0F172A;display:flex;align-items:center;justify-content:center;font-size:11px;animation:pulse 1.5s infinite;">🐾</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:800;font-size:16px;color:#FBBF24;">${paseoMascota.nombre || 'Mi perro'}</div>
+            <div style="font-size:11px;opacity:0.85;font-weight:600;">está paseando contigo 🐾</div>
+            <div style="font-size:10px;opacity:0.7;margin-top:2px;">${paseoMascota.raza || 'Raza mixta'}${paseoMascota.edad ? ' · ' + paseoMascota.edad + ' años' : ''}</div>
           </div>
         </div>
         
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;">
-            <div style="font-size:16px;font-weight:800;color:#FBBF24;" id="perro-pasos">0</div>
-            <div style="font-size:9px;opacity:0.7;font-weight:600;">pasos del perro</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:rgba(0,0,0,0.25);border-radius:12px;padding:10px 8px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;color:#FBBF24;" id="perro-pasos">0</div>
+            <div style="font-size:9px;opacity:0.7;font-weight:600;">🐾 pasos del perro</div>
           </div>
-          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;">
-            <div style="font-size:16px;font-weight:800;color:#F87171;" id="perro-calorias">0</div>
-            <div style="font-size:9px;opacity:0.7;font-weight:600;">cal del perro</div>
+          <div style="background:rgba(0,0,0,0.25);border-radius:12px;padding:10px 8px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;color:#F87171;" id="perro-calorias">0</div>
+            <div style="font-size:9px;opacity:0.7;font-weight:600;">🔥 cal del perro</div>
           </div>
         </div>
         
         <div style="margin-bottom:6px;">
-          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;opacity:0.85;">
-            <span style="font-weight:700;">⚡ Energía del perro</span>
-            <span id="perro-energia-texto">Descansado</span>
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;opacity:0.9;">
+            <span style="font-weight:700;">⚡ Energía</span>
+            <span id="perro-energia-texto" style="font-weight:700;">Descansado ⚡</span>
           </div>
-          <div style="width:100%;height:8px;background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden;">
+          <div style="width:100%;height:10px;background:rgba(0,0,0,0.4);border-radius:5px;overflow:hidden;">
             <div id="perro-energia-fill" style="width:100%;height:100%;background:linear-gradient(90deg,#10B981,#F59E0B,#EF4444);transition:width 0.5s;"></div>
           </div>
         </div>
         
-        <div id="perro-consejo" style="font-size:10px;color:#FDE68A;font-weight:600;margin-top:6px;text-align:center;">
+        <div id="perro-consejo" style="font-size:11px;color:#FDE68A;font-weight:600;margin-top:8px;text-align:center;background:rgba(0,0,0,0.2);padding:6px;border-radius:8px;">
           ${getInfoRaza(paseoMascota.raza).comentario}
         </div>
       </div>
-      ` : ''}
+      ` : `
+      <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;margin-bottom:16px;text-align:center;font-size:11px;color:rgba(255,255,255,0.6);">
+        🚶 Paseando solo (sin perro seleccionado)
+      </div>
+      `}
       
       <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:12px;margin-bottom:16px;">
         <div style="font-size:11px;opacity:0.8;font-weight:600;margin-bottom:8px;">🗺️ Tu recorrido</div>

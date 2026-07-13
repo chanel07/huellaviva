@@ -476,6 +476,20 @@ body.dark {
     </div>
   </div>
 
+  <!-- BOTÓN PASEO -->
+  <div onclick="abrirPaseo()" style="background:linear-gradient(135deg,#F59E0B 0%,#EA580C 50%,#DC2626 100%);color:#fff;border-radius:16px;padding:16px;margin-bottom:16px;cursor:pointer;box-shadow:0 6px 24px rgba(245,158,11,0.4);position:relative;overflow:hidden;animation:fadeInUp 0.6s ease 0.35s both;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform='scale(1)'">
+    <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>
+    <div style="position:absolute;bottom:-30px;left:-20px;width:80px;height:80px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
+    <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;">
+      <div style="font-size:38px;">🐕‍🦺</div>
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:800;margin-bottom:2px;">Paseo con tu perro</div>
+        <div style="font-size:11px;opacity:0.95;font-weight:500;">Registra distancia, pasos, calorías y ayuda a la comunidad</div>
+      </div>
+      <div style="font-size:22px;opacity:0.9;">→</div>
+    </div>
+  </div>
+
   <div class="stats-row" style="margin-bottom:16px;">
     <div class="stat-pill"><div class="stat-num" id="si-perdidos">-</div><div class="stat-lbl">Perdidos</div></div>
     <div class="stat-pill"><div class="stat-num" id="si-encontrados">-</div><div class="stat-lbl">Hallados</div></div>
@@ -880,8 +894,11 @@ function showToast(msg, type) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SISTEMA DE NAVEGACIÓN CON BOTÓN ATRÁS (v2 - MÁS ROBUSTO)
+// SISTEMA DE NAVEGACIÓN CON BOTÓN ATRÁS (v4 - DEBUG)
 // ═══════════════════════════════════════════════════════════
+console.log('%c🔙 HuellaViva v4 - Sistema de botón atrás cargado','color:#10B981;font-weight:bold;font-size:14px');
+window.__HUELLAVIVA_VERSION = 'v4-back-button-fix';
+
 let navStack = ['inicio']; // Pila de pantallas visitadas
 let isNavigatingBack = false; // Flag para evitar loops
 let backButtonInitialized = false; // Flag de inicialización
@@ -937,18 +954,17 @@ function abrirZoomFoto(url, nombre) {
   } catch(e) {}
   
   const modal = document.createElement('div');
-  modal.className = 'zoom-modal-fullscreen';
+  modal.className = 'huellaviva-modal zoom-modal-fullscreen';
+  modal.dataset.modalType = 'zoom-foto';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:100000;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;';
   
   // Header con info y botón cerrar
   const header = document.createElement('div');
   header.style.cssText = 'position:absolute;top:0;left:0;right:0;padding:16px 20px;background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);display:flex;justify-content:space-between;align-items:center;z-index:100001;';
   header.innerHTML = `
+    <button id="zoomFotoVolver" style="display:flex;align-items:center;gap:6px;background:#10B981;border:none;color:#fff;padding:10px 16px;border-radius:24px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);">← Volver</button>
     <div style="color:#fff;font-weight:700;font-size:15px;">🐾 ${nombre}</div>
-    <div style="display:flex;gap:8px;">
-      <button id="zoomFotoReset" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">↻ Reset</button>
-      <button id="zoomFotoCerrar" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 12px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;">✕</button>
-    </div>
+    <button id="zoomFotoReset" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">↻</button>
   `;
   modal.appendChild(header);
   
@@ -1110,7 +1126,7 @@ function abrirZoomFoto(url, nombre) {
     } catch(e) {}
   }
   
-  document.getElementById('zoomFotoCerrar').addEventListener('click', cerrarZoom);
+  document.getElementById('zoomFotoVolver').addEventListener('click', cerrarZoom);
   
   // Tap en el fondo cierra (solo si no hay zoom activo)
   modal.addEventListener('click', (e) => {
@@ -1122,42 +1138,102 @@ function abrirZoomFoto(url, nombre) {
 
 // FUNCIÓN PRINCIPAL DE MANEJO DE ATRÁS
 function manejarBotonAtras(e) {
-  console.log('🔙 Botón atrás detectado. navStack:', navStack);
+  console.log('🔙 popstate event fired. navStack:', JSON.stringify(navStack));
   
-  // PRIORIDAD 1: Cerrar modales abiertos (busca CUALQUIER overlay)
-  // Detecta TODOS los divs flotantes que tapan la pantalla
-  const todosModales = Array.from(document.querySelectorAll('div')).filter(div => {
-    if (!div.style) return false;
-    const style = div.getAttribute('style') || '';
-    // Excluir las pantallas regulares
-    if (div.classList.contains('screen')) return false;
-    if (div.id && div.id.startsWith('screen-')) return false;
-    
-    // Detectar si es un modal flotante
-    const esPositionFixed = style.includes('position:fixed') || style.includes('position: fixed');
-    const tieneZIndex = style.includes('z-index:') || style.includes('z-index ');
-    const esFullScreen = style.includes('top:0') && style.includes('left:0') && style.includes('right:0') && style.includes('bottom:0');
-    
-    return esPositionFixed && (tieneZIndex || esFullScreen);
-  });
+  // ═══════════════════════════════════════════════════════
+  // EXCLUSIONES - IDs que NO son modales
+  // ═══════════════════════════════════════════════════════
+  const EXCLUIR_IDS = [
+    'onboarding',     // Pantalla de bienvenida
+    'app',            // Contenedor principal
+    'app-root',       // Contenedor principal
+    'main',           // Contenedor principal
+    'ar-overlay',     // Pantalla AR (tiene su propio botón)
+    'ar-screen',      // Pantalla AR
+    'radar-screen',   // Pantalla Radar
+    'radar-overlay',  // Pantalla Radar
+    'splash',         // Splash screen
+    'splash-screen'   // Splash screen
+  ];
   
-  // Filtrar solo los visibles (que estén en el DOM y se vean)
-  const modalesVisibles = todosModales.filter(m => {
-    return m.parentNode === document.body && m.offsetParent !== null;
-  });
+  function esModalValido(el) {
+    if (!el || !el.id) return true;
+    if (EXCLUIR_IDS.includes(el.id)) return false;
+    if (el.classList && el.classList.contains('screen')) return false;
+    if (el.id.startsWith('screen-')) return false;
+    if (el.id.startsWith('ar-')) return false;
+    if (el.id.startsWith('radar-')) return false;
+    return true;
+  }
   
-  if (modalesVisibles.length > 0) {
-    // Tomar el modal más reciente (último agregado al body)
-    const ultimoModal = modalesVisibles[modalesVisibles.length - 1];
-    console.log('🔙 Cerrando modal/overlay:', ultimoModal);
-    ultimoModal.remove();
-    // Reagregar al historial para que próximo atrás también funcione
+  // ═══════════════════════════════════════════════════════
+  // BÚSQUEDA AGRESIVA DE MODALES
+  // ═══════════════════════════════════════════════════════
+  
+  // Lista de selectores que SEGURO son modales:
+  const selectoresModales = [
+    '.huellaviva-modal',
+    '.zoom-modal-fullscreen', 
+    '.match-modal-bg'
+  ];
+  
+  let modalEncontrado = null;
+  
+  // 1. Buscar por clases conocidas
+  for (const selector of selectoresModales) {
+    const elementos = document.querySelectorAll(selector);
+    if (elementos.length > 0) {
+      // Tomar el último (más reciente) que sea válido
+      for (let i = elementos.length - 1; i >= 0; i--) {
+        if (esModalValido(elementos[i])) {
+          modalEncontrado = elementos[i];
+          console.log('🔙 Modal encontrado por clase:', selector);
+          break;
+        }
+      }
+      if (modalEncontrado) break;
+    }
+  }
+  
+  // 2. Si no encontró por clase, buscar por estilo
+  if (!modalEncontrado) {
+    const todosDivs = document.body.children;
+    for (let i = todosDivs.length - 1; i >= 0; i--) {
+      const div = todosDivs[i];
+      
+      // Aplicar exclusiones
+      if (!esModalValido(div)) continue;
+      if (div.tagName !== 'DIV') continue;
+      
+      // Verificar si parece un modal
+      const cs = window.getComputedStyle(div);
+      const isFixed = cs.position === 'fixed';
+      const zIndex = parseInt(cs.zIndex) || 0;
+      const isVisible = cs.display !== 'none' && cs.visibility !== 'hidden';
+      
+      if (isFixed && zIndex >= 1000 && isVisible) {
+        modalEncontrado = div;
+        console.log('🔙 Modal encontrado por computed style. z-index:', zIndex);
+        break;
+      }
+    }
+  }
+  
+  // 3. Si encontró modal, cerrarlo
+  if (modalEncontrado) {
+    console.log('🔙 Cerrando modal:', modalEncontrado.className || modalEncontrado.id || 'sin id');
+    modalEncontrado.remove();
+    // Reagregar al historial
     const actual = navStack[navStack.length - 1] || 'inicio';
     try {
       history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
-    } catch(err) {}
+    } catch(err) {
+      console.warn('Error pushState:', err);
+    }
     return;
   }
+  
+  console.log('🔙 NO se encontraron modales');
   
   // PRIORIDAD 2: Cerrar AR/Radar
   const arScreen = document.getElementById('ar-screen');
@@ -1196,22 +1272,21 @@ function manejarBotonAtras(e) {
   
   // PRIORIDAD 4: Estamos en raíz, confirmar salir
   console.log('🔙 En raíz, mostrar toast');
-  if (typeof toast === 'function') {
-    toast('Toca atrás de nuevo para salir');
-  } else {
-    // Toast manual si no existe la función
-    const t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:24px;z-index:99999;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-    t.textContent = 'Toca atrás de nuevo para salir';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2000);
-  }
+  
+  // Toast manual
+  const t = document.createElement('div');
+  t.className = 'huellaviva-toast-exit';
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:24px;z-index:99999;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+  t.textContent = 'Toca atrás de nuevo para salir';
+  // Remover toasts viejos
+  document.querySelectorAll('.huellaviva-toast-exit').forEach(old => old.remove());
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
   
   // Si tocan atrás 2 veces rápido (menos de 2 seg), permitir cerrar
   if (window.__lastBackPress && (Date.now() - window.__lastBackPress) < 2000) {
     console.log('🔙 Cerrando app');
     window.__lastBackPress = 0;
-    // Salir definitivamente: dejar que el historial se vacíe
     return;
   }
   window.__lastBackPress = Date.now();
@@ -1257,6 +1332,7 @@ function mostrarModalExito(tipo) {
     setTimeout(() => c.remove(), 4000);
   }
   const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
   const card = document.createElement('div');
   card.style.cssText = 'background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;';
@@ -2422,6 +2498,7 @@ function cerrarBusquedaIA() {
 function mostrarReporteExpress() {
   const m = document.createElement('div');
   m.id = 'modal-express';
+  m.className = 'huellaviva-modal';
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;padding:0;';
   m.innerHTML = `
     <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,0.2);">
@@ -3738,6 +3815,7 @@ function compartirApp() {
 function verMisReportes() {
   const misIds = JSON.parse(localStorage.getItem('mis_reportes') || '[]');
   const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
   const card = document.createElement('div');
   card.style.cssText = 'background:var(--bg);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;';
@@ -3801,11 +3879,16 @@ function verDetalle(id) {
   const label = r.tipo==='perdido'?'Perdido':r.tipo==='encontrado'?'Encontrado':'Vi un perro perdido';
   const fecha = r.created_at ? new Date(r.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '';
   const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
+  m.dataset.modalType = 'detalle-perro';
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end;';
   const card = document.createElement('div');
   card.style.cssText = 'background:#F8F7FF;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;';
   card.innerHTML =
-    '<div style="width:40px;height:4px;background:#E5E7EB;border-radius:2px;margin:0 auto 16px;"></div>' +
+    '<div style="width:40px;height:4px;background:#E5E7EB;border-radius:2px;margin:0 auto 12px;"></div>' +
+    '<div style="position:sticky;top:-20px;background:#F8F7FF;padding:8px 0 12px;margin:-20px -20px 14px;padding-left:20px;padding-right:20px;z-index:10;border-bottom:1px solid #E5E7EB;">' +
+      '<button onclick="this.closest(\'.huellaviva-modal\').remove();" style="display:flex;align-items:center;gap:8px;background:#10B981;border:none;color:#fff;padding:12px 20px;border-radius:24px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(16,185,129,0.3);transition:all 0.2s;width:auto;">← Volver atrás</button>' +
+    '</div>' +
     (r.foto_url ? '<div style="position:relative;margin-bottom:14px;"><img src="'+r.foto_url+'" onclick="abrirZoomFoto(\''+r.foto_url+'\', \''+(r.nombre||'Mascota').replace(/\'/g,"\\'")+'\')" style="width:100%;border-radius:14px;max-height:400px;object-fit:contain;background:#f3f4f6;cursor:zoom-in;" /><div onclick="abrirZoomFoto(\''+r.foto_url+'\', \''+(r.nombre||'Mascota').replace(/\'/g,"\\'")+'\')" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;backdrop-filter:blur(8px);">🔍 Zoom</div></div>' : '') +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<div style="font-weight:800;font-size:19px;color:#1E1B4B;">'+(r.nombre||'Sin nombre')+'</div>' +
@@ -3971,6 +4054,7 @@ function diasPerdido(r) {
 
 function mostrarFormEditar(r, modalDetalle) {
   const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
   m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:10001;display:flex;align-items:flex-end;';
   const card = document.createElement('div');
   card.style.cssText = 'background:var(--bg);border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;';
@@ -4028,6 +4112,1009 @@ function mostrarFormEditar(r, modalDetalle) {
   m.onclick = (e) => { if (e.target === m) document.body.removeChild(m); };
   document.body.appendChild(m);
 }
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE PASEO CON MASCOTA
+// ═══════════════════════════════════════════════════════════
+
+let paseoActivo = null;
+let paseoWatchId = null;
+let paseoRuta = [];
+let paseoDistancia = 0;
+let paseoPasos = 0;
+let paseoInicio = null;
+let paseoTimerId = null;
+let paseoUltimaPos = null;
+let paseoMapa = null;
+let paseoRutaLinea = null;
+let paseoObjetivo = null;
+let paseoUltimoKmAvisado = 0;
+let paseoMascota = null;
+let paseoAguaAvisada = false;
+
+// Datos de razas y sus recomendaciones
+const RAZAS_INFO = {
+  'chihuahua': { max_km: 2, factor_energia: 1.5, factor_pasos: 4, comentario: 'Raza pequeña, cuídalo del calor' },
+  'poodle': { max_km: 4, factor_energia: 1.2, factor_pasos: 3, comentario: 'Le encanta la actividad' },
+  'yorkshire': { max_km: 2, factor_energia: 1.5, factor_pasos: 4, comentario: 'Pequeño pero activo' },
+  'schnauzer': { max_km: 5, factor_energia: 1.2, factor_pasos: 3, comentario: 'Buen compañero de paseos' },
+  'french bulldog': { max_km: 1.5, factor_energia: 1.8, factor_pasos: 3, comentario: '⚠️ Sensible al calor, no lo agotes' },
+  'bulldog': { max_km: 1.5, factor_energia: 1.8, factor_pasos: 3, comentario: '⚠️ Sensible al calor, no lo agotes' },
+  'pug': { max_km: 1.5, factor_energia: 1.8, factor_pasos: 3, comentario: '⚠️ Sensible al calor, no lo agotes' },
+  'golden': { max_km: 8, factor_energia: 1.0, factor_pasos: 3, comentario: '💪 Le encanta caminar' },
+  'labrador': { max_km: 8, factor_energia: 1.0, factor_pasos: 3, comentario: '💪 Necesita mucho ejercicio' },
+  'pastor aleman': { max_km: 10, factor_energia: 1.0, factor_pasos: 3, comentario: '💪 Muy activo, necesita ejercicio' },
+  'husky': { max_km: 12, factor_energia: 0.9, factor_pasos: 3, comentario: '💪 Necesita MUCHO ejercicio' },
+  'border collie': { max_km: 10, factor_energia: 1.0, factor_pasos: 3, comentario: '💪 Súper activo' },
+  'pitbull': { max_km: 6, factor_energia: 1.1, factor_pasos: 3, comentario: 'Necesita ejercicio regular' },
+  'rottweiler': { max_km: 6, factor_energia: 1.0, factor_pasos: 3, comentario: 'Necesita ejercicio moderado' },
+  'boxer': { max_km: 5, factor_energia: 1.1, factor_pasos: 3, comentario: 'Le encanta jugar' },
+  'criollo': { max_km: 5, factor_energia: 1.1, factor_pasos: 3, comentario: 'Los criollos son muy resistentes' },
+  'mestizo': { max_km: 5, factor_energia: 1.1, factor_pasos: 3, comentario: 'Los mestizos son muy resistentes' },
+  'default': { max_km: 4, factor_energia: 1.1, factor_pasos: 3, comentario: 'Adapta el paseo según su energía' }
+};
+
+function getInfoRaza(raza) {
+  if (!raza) return RAZAS_INFO['default'];
+  const r = raza.toLowerCase().trim();
+  for (const key in RAZAS_INFO) {
+    if (r.includes(key)) return RAZAS_INFO[key];
+  }
+  return RAZAS_INFO['default'];
+}
+
+// Ajustar según edad (calcular en años)
+function getFactorEdad(edad) {
+  if (!edad) return 1.0;
+  const e = parseInt(edad);
+  if (isNaN(e)) return 1.0;
+  if (e < 1) return 0.6; // Cachorro
+  if (e < 7) return 1.0; // Adulto
+  if (e < 10) return 0.7; // Senior
+  return 0.5; // Anciano
+}
+
+// MOSTRAR SELECTOR DE OBJETIVO antes de iniciar
+function mostrarSelectorObjetivo() {
+  const mascotas = getMisMascotas ? getMisMascotas() : [];
+  
+  const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  
+  const selectorMascotas = mascotas.length > 0 ? `
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;">🐕 ¿Con cuál perro vas a pasear?</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;">
+        ${mascotas.map((mas, idx) => `
+          <button onclick="seleccionarMascotaPaseo(${idx})" data-idx="${idx}" class="btn-mascota-paseo" style="flex-shrink:0;background:#F3F4F6;border:2px solid #E5E7EB;padding:10px 14px;border-radius:16px;cursor:pointer;text-align:center;font-family:inherit;min-width:100px;">
+            <div style="font-size:26px;margin-bottom:2px;">🐕</div>
+            <div style="font-weight:800;font-size:13px;color:#374151;">${mas.nombre || 'Mi perro'}</div>
+            <div style="font-size:9px;color:#6B7280;">${mas.raza || ''}</div>
+          </button>
+        `).join('')}
+        <button onclick="seleccionarMascotaPaseo(-1)" data-idx="-1" class="btn-mascota-paseo" style="flex-shrink:0;background:#F3F4F6;border:2px solid #E5E7EB;padding:10px 14px;border-radius:16px;cursor:pointer;text-align:center;font-family:inherit;min-width:100px;">
+          <div style="font-size:26px;margin-bottom:2px;">🚶</div>
+          <div style="font-weight:800;font-size:13px;color:#374151;">Sin perro</div>
+          <div style="font-size:9px;color:#6B7280;">Solo yo</div>
+        </button>
+      </div>
+    </div>
+  ` : '';
+  
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;">
+      <div style="width:40px;height:4px;background:#E5E7EB;border-radius:2px;margin:0 auto 20px;"></div>
+      
+      ${selectorMascotas}
+      
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:4px;">🎯 ¿Tu objetivo?</div>
+        <div style="font-size:12px;color:#6B7280;">Elige uno o comienza libre</div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <button onclick="iniciarConObjetivo('distancia', 1)" style="background:#FEF3C7;border:2px solid #F59E0B;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">📍</div>
+          <div style="font-weight:800;font-size:15px;color:#92400E;">1 km</div>
+          <div style="font-size:10px;color:#78350F;">Paseo corto</div>
+        </button>
+        <button onclick="iniciarConObjetivo('distancia', 3)" style="background:#FEF3C7;border:2px solid #F59E0B;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">📍</div>
+          <div style="font-weight:800;font-size:15px;color:#92400E;">3 km</div>
+          <div style="font-size:10px;color:#78350F;">Paseo largo</div>
+        </button>
+        <button onclick="iniciarConObjetivo('tiempo', 15)" style="background:#DBEAFE;border:2px solid #3B82F6;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">⏱️</div>
+          <div style="font-weight:800;font-size:15px;color:#1E40AF;">15 min</div>
+          <div style="font-size:10px;color:#1E3A8A;">Rápido</div>
+        </button>
+        <button onclick="iniciarConObjetivo('tiempo', 30)" style="background:#DBEAFE;border:2px solid #3B82F6;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">⏱️</div>
+          <div style="font-weight:800;font-size:15px;color:#1E40AF;">30 min</div>
+          <div style="font-size:10px;color:#1E3A8A;">Estándar</div>
+        </button>
+        <button onclick="iniciarConObjetivo('calorias', 100)" style="background:#FEE2E2;border:2px solid #EF4444;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">🔥</div>
+          <div style="font-weight:800;font-size:15px;color:#991B1B;">100 cal</div>
+          <div style="font-size:10px;color:#7F1D1D;">Ligero</div>
+        </button>
+        <button onclick="iniciarConObjetivo('calorias', 200)" style="background:#FEE2E2;border:2px solid #EF4444;padding:16px 8px;border-radius:14px;cursor:pointer;text-align:center;font-family:inherit;">
+          <div style="font-size:24px;margin-bottom:4px;">🔥</div>
+          <div style="font-weight:800;font-size:15px;color:#991B1B;">200 cal</div>
+          <div style="font-size:10px;color:#7F1D1D;">Intenso</div>
+        </button>
+      </div>
+      
+      <button onclick="iniciarConObjetivo(null)" style="width:100%;background:linear-gradient(135deg,#F59E0B,#DC2626);color:#fff;border:none;padding:16px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;box-shadow:0 4px 16px rgba(245,158,11,0.4);">
+        🐾 Paseo libre (sin objetivo)
+      </button>
+      
+      <button onclick="this.closest('.huellaviva-modal').remove();" style="width:100%;background:transparent;color:#6B7280;border:none;padding:14px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;">
+        Cancelar
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(m);
+  
+  // Si hay mascotas, preseleccionar la primera
+  if (mascotas.length > 0) {
+    setTimeout(() => seleccionarMascotaPaseo(0), 100);
+  }
+}
+
+function seleccionarMascotaPaseo(idx) {
+  const mascotas = getMisMascotas();
+  if (idx === -1) {
+    paseoMascota = null;
+  } else if (mascotas[idx]) {
+    paseoMascota = mascotas[idx];
+  }
+  
+  // Actualizar UI - resaltar seleccionado
+  document.querySelectorAll('.btn-mascota-paseo').forEach(btn => {
+    const btnIdx = parseInt(btn.dataset.idx);
+    if (btnIdx === idx) {
+      btn.style.background = '#FEF3C7';
+      btn.style.borderColor = '#F59E0B';
+    } else {
+      btn.style.background = '#F3F4F6';
+      btn.style.borderColor = '#E5E7EB';
+    }
+  });
+}
+
+function iniciarConObjetivo(tipo, valor) {
+  if (tipo) {
+    const labels = {
+      distancia: valor + ' km',
+      tiempo: valor + ' min',
+      calorias: valor + ' cal'
+    };
+    paseoObjetivo = { tipo: tipo, valor: valor, label: labels[tipo] };
+  } else {
+    paseoObjetivo = null;
+  }
+  
+  // Cerrar todos los modales de paseo
+  document.querySelectorAll('.huellaviva-modal').forEach(el => el.remove());
+  
+  // Iniciar el paseo
+  iniciarPaseo();
+}
+
+// Actualizar datos del perro durante el paseo
+function actualizarDatosPerro() {
+  if (!paseoMascota) return;
+  
+  const info = getInfoRaza(paseoMascota.raza);
+  const factorEdad = getFactorEdad(paseoMascota.edad);
+  
+  // Pasos del perro (aprox 3x los del humano ajustado por raza)
+  const perroPasos = Math.round(paseoPasos * info.factor_pasos);
+  const perroPasosEl = document.getElementById('perro-pasos');
+  if (perroPasosEl) perroPasosEl.textContent = perroPasos.toLocaleString();
+  
+  // Calorías del perro (basado en peso si está, o estándar)
+  const peso = paseoMascota.peso ? parseFloat(paseoMascota.peso) : 15;
+  const perroCal = paseoDistancia * peso * 1.5 * info.factor_energia;
+  const perroCalEl = document.getElementById('perro-calorias');
+  if (perroCalEl) perroCalEl.textContent = Math.round(perroCal);
+  
+  // Energía del perro (empieza en 100% y baja según distancia y raza)
+  const maxKmAjustado = info.max_km * factorEdad;
+  let energia = 100 - (paseoDistancia / maxKmAjustado) * 100;
+  energia = Math.max(0, energia);
+  
+  const energiaFill = document.getElementById('perro-energia-fill');
+  const energiaTexto = document.getElementById('perro-energia-texto');
+  const consejoEl = document.getElementById('perro-consejo');
+  
+  if (energiaFill) energiaFill.style.width = energia + '%';
+  
+  if (energiaTexto && consejoEl) {
+    if (energia > 70) {
+      energiaTexto.textContent = 'Descansado ⚡';
+      consejoEl.textContent = info.comentario;
+      consejoEl.style.color = '#FDE68A';
+    } else if (energia > 40) {
+      energiaTexto.textContent = 'Activo 🏃';
+      consejoEl.textContent = 'Tu perro está disfrutando el paseo';
+      consejoEl.style.color = '#FDE68A';
+    } else if (energia > 15) {
+      energiaTexto.textContent = 'Cansándose 😅';
+      consejoEl.textContent = '⚠️ Considera descansar un poco';
+      consejoEl.style.color = '#FCA5A5';
+    } else {
+      energiaTexto.textContent = '⚠️ Muy cansado';
+      consejoEl.textContent = '🛑 Detén el paseo, dale agua y descanso';
+      consejoEl.style.color = '#F87171';
+      // Vibrar para llamar atención
+      if (!paseoMascota._alertadoCansancio && navigator.vibrate) {
+        navigator.vibrate([300, 100, 300, 100, 300]);
+        paseoMascota._alertadoCansancio = true;
+        mostrarToastPaseo('🛑 ' + (paseoMascota.nombre || 'Tu perro') + ' está muy cansado');
+      }
+    }
+  }
+}
+
+function actualizarProgresoObjetivo() {
+  if (!paseoObjetivo) return;
+  
+  let progreso = 0;
+  let alcanzado = false;
+  
+  if (paseoObjetivo.tipo === 'distancia') {
+    progreso = (paseoDistancia / paseoObjetivo.valor) * 100;
+    alcanzado = paseoDistancia >= paseoObjetivo.valor;
+  } else if (paseoObjetivo.tipo === 'tiempo') {
+    const minutos = (Date.now() - paseoInicio) / 60000;
+    progreso = (minutos / paseoObjetivo.valor) * 100;
+    alcanzado = minutos >= paseoObjetivo.valor;
+  } else if (paseoObjetivo.tipo === 'calorias') {
+    const cal = paseoDistancia * 52;
+    progreso = (cal / paseoObjetivo.valor) * 100;
+    alcanzado = cal >= paseoObjetivo.valor;
+  }
+  
+  progreso = Math.min(100, progreso);
+  
+  const fill = document.getElementById('paseo-objetivo-fill');
+  const texto = document.getElementById('paseo-objetivo-progreso');
+  if (fill) fill.style.width = progreso + '%';
+  if (texto) texto.textContent = Math.floor(progreso) + '%';
+  
+  // Notificar cuando se alcanza el objetivo
+  if (alcanzado && !paseoObjetivo.notificado) {
+    paseoObjetivo.notificado = true;
+    mostrarToastPaseo('🎉 ¡Objetivo alcanzado! ' + paseoObjetivo.label);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  }
+}
+
+function mostrarToastPaseo(mensaje) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:#10B981;color:#fff;padding:14px 24px;border-radius:24px;z-index:100000;font-size:14px;font-weight:800;box-shadow:0 8px 32px rgba(16,185,129,0.5);animation:fadeInUp 0.3s ease;';
+  t.textContent = mensaje;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// Calcular ritmo (min/km) actual
+function calcularRitmo() {
+  if (paseoDistancia < 0.01) return null;
+  const minutos = (Date.now() - paseoInicio) / 60000;
+  const ritmo = minutos / paseoDistancia; // minutos por km
+  return ritmo;
+}
+
+// Formatear ritmo como mm:ss
+function formatearRitmo(ritmo) {
+  if (!ritmo || !isFinite(ritmo)) return '--:--';
+  const mins = Math.floor(ritmo);
+  const secs = Math.floor((ritmo - mins) * 60);
+  return String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+}
+
+// Renderizar vista semanal con barras
+function renderVistaSemanal(historial) {
+  const hoy = new Date();
+  const dias = [];
+  const nombresDias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  
+  // Obtener últimos 7 días
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(hoy);
+    d.setDate(d.getDate() - i);
+    const fechaStr = d.toISOString().split('T')[0];
+    const paseosDia = historial.filter(p => p.fecha.split('T')[0] === fechaStr);
+    const kmDia = paseosDia.reduce((s, p) => s + (p.distancia || 0), 0);
+    dias.push({
+      nombre: nombresDias[d.getDay()],
+      fecha: d.getDate(),
+      km: kmDia,
+      esHoy: i === 0
+    });
+  }
+  
+  const maxKm = Math.max(...dias.map(d => d.km), 1);
+  const totalSemana = dias.reduce((s, d) => s + d.km, 0);
+  
+  return `
+    <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-weight:800;font-size:14px;color:#374151;">📅 Esta semana</div>
+        <div style="font-size:13px;font-weight:800;color:#F59E0B;">${totalSemana.toFixed(1)} km</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:100px;padding:0 2px;">
+        ${dias.map(d => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:100%;height:70px;display:flex;align-items:flex-end;">
+              <div style="width:100%;height:${Math.max(4, (d.km / maxKm) * 100)}%;background:${d.esHoy ? 'linear-gradient(180deg,#F59E0B,#DC2626)' : d.km > 0 ? '#FCD34D' : '#F3F4F6'};border-radius:6px 6px 0 0;transition:height 0.5s;position:relative;">
+                ${d.km > 0 ? `<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;color:#78350F;white-space:nowrap;">${d.km.toFixed(1)}</div>` : ''}
+              </div>
+            </div>
+            <div style="font-size:10px;font-weight:${d.esHoy ? '800' : '600'};color:${d.esHoy ? '#DC2626' : '#6B7280'};">${d.nombre}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+
+// PASO 1: Abrir pantalla inicial de paseo
+function abrirPaseo() {
+  const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#F8F7FF;z-index:9998;overflow-y:auto;padding:16px;';
+  
+  const historial = obtenerHistorialPaseos();
+  const totalKm = historial.reduce((s, p) => s + (p.distancia || 0), 0);
+  const totalPaseos = historial.length;
+  const totalCal = historial.reduce((s, p) => s + (p.calorias || 0), 0);
+  const rachaActual = calcularRacha(historial);
+  
+  m.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;">
+      <button onclick="this.closest('.huellaviva-modal').remove();" style="display:flex;align-items:center;gap:6px;background:#F3F4F6;border:none;color:#374151;padding:10px 16px;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:16px;">← Volver</button>
+      
+      <div style="background:linear-gradient(135deg,#F59E0B,#DC2626);border-radius:20px;padding:24px;color:#fff;margin-bottom:20px;box-shadow:0 8px 32px rgba(245,158,11,0.4);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div style="font-size:48px;">🐕‍🦺</div>
+          <div>
+            <div style="font-size:22px;font-weight:800;">¡Vamos a pasear!</div>
+            <div style="font-size:12px;opacity:0.9;">Registra el paseo con tu mascota</div>
+          </div>
+        </div>
+        <button onclick="mostrarSelectorObjetivo()" style="width:100%;background:#fff;color:#DC2626;border:none;padding:16px;border-radius:12px;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+          ▶️ INICIAR PASEO
+        </button>
+      </div>
+      
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+        <div style="font-weight:800;font-size:14px;color:#374151;margin-bottom:12px;">📊 Mis estadísticas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:#FEF3C7;padding:12px;border-radius:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#92400E;">${totalKm.toFixed(1)} km</div>
+            <div style="font-size:10px;color:#78350F;font-weight:600;">Total recorrido</div>
+          </div>
+          <div style="background:#DBEAFE;padding:12px;border-radius:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#1E40AF;">${totalPaseos}</div>
+            <div style="font-size:10px;color:#1E3A8A;font-weight:600;">Paseos completados</div>
+          </div>
+          <div style="background:#FEE2E2;padding:12px;border-radius:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#991B1B;">${Math.round(totalCal)}</div>
+            <div style="font-size:10px;color:#7F1D1D;font-weight:600;">Calorías quemadas</div>
+          </div>
+          <div style="background:#D1FAE5;padding:12px;border-radius:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:#065F46;">${rachaActual} 🔥</div>
+            <div style="font-size:10px;color:#064E3B;font-weight:600;">Días seguidos</div>
+          </div>
+        </div>
+      </div>
+      
+      ${totalPaseos > 0 ? renderVistaSemanal(historial) : ''}
+      
+      ${totalPaseos > 0 ? renderLogros(totalPaseos, totalKm, rachaActual) : ''}
+      
+      ${historial.length > 0 ? `
+      <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+        <div style="font-weight:800;font-size:14px;color:#374151;margin-bottom:12px;">📅 Historial reciente</div>
+        ${historial.slice(0, 5).map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6;">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:#374151;">${formatFecha(p.fecha)}</div>
+              <div style="font-size:11px;color:#6B7280;">${p.duracion || 0} min • ${(p.pasos || 0).toLocaleString()} pasos</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:800;font-size:15px;color:#F59E0B;">${(p.distancia || 0).toFixed(2)} km</div>
+              <div style="font-size:10px;color:#6B7280;">${Math.round(p.calorias || 0)} cal</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ` : `
+      <div style="background:#FEF3C7;border-radius:16px;padding:20px;text-align:center;color:#92400E;">
+        <div style="font-size:32px;margin-bottom:8px;">🐾</div>
+        <div style="font-weight:700;font-size:14px;">¡Haz tu primer paseo!</div>
+        <div style="font-size:12px;margin-top:4px;">Toca "Iniciar paseo" y comienza a caminar con tu mascota</div>
+      </div>
+      `}
+      
+      <div style="background:#EFF6FF;border-left:4px solid #3B82F6;padding:12px;border-radius:8px;margin-top:16px;">
+        <div style="font-size:12px;color:#1E3A8A;font-weight:700;margin-bottom:4px;">💡 ¿Sabías qué?</div>
+        <div style="font-size:11px;color:#1E40AF;line-height:1.5;">Mientras paseas con la app abierta, ayudas a detectar perros perdidos cerca de tu ruta. ¡Eres un héroe de la comunidad!</div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(m);
+}
+
+// PASO 2: Iniciar el paseo
+function iniciarPaseo() {
+  if (!navigator.geolocation) {
+    alert('Tu dispositivo no soporta GPS');
+    return;
+  }
+  
+  // Cerrar modal inicial
+  const modalInicial = document.querySelector('.huellaviva-modal');
+  if (modalInicial) modalInicial.remove();
+  
+  // Resetear estado
+  paseoRuta = [];
+  paseoDistancia = 0;
+  paseoPasos = 0;
+  paseoInicio = Date.now();
+  paseoUltimaPos = null;
+  paseoUltimoKmAvisado = 0;
+  paseoAguaAvisada = false;
+  if (paseoMascota) paseoMascota._alertadoCansancio = false;
+  
+  // Crear pantalla de paseo activo
+  const pantalla = document.createElement('div');
+  pantalla.className = 'huellaviva-modal';
+  pantalla.id = 'pantalla-paseo-activo';
+  pantalla.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0F172A;z-index:9998;overflow-y:auto;color:#fff;';
+  
+  pantalla.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:8px;background:#EF4444;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;">
+          <span style="width:8px;height:8px;background:#fff;border-radius:50%;animation:pulse 1.5s infinite;"></span>
+          PASEANDO
+        </div>
+        <button onclick="finalizarPaseo()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">🏁 Finalizar</button>
+      </div>
+      
+      ${paseoObjetivo ? `
+      <div id="paseo-objetivo-bar" style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px;opacity:0.85;">
+          <span style="font-weight:700;">🎯 Objetivo: ${paseoObjetivo.label}</span>
+          <span id="paseo-objetivo-progreso">0%</span>
+        </div>
+        <div style="width:100%;height:8px;background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden;">
+          <div id="paseo-objetivo-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#F59E0B,#10B981);transition:width 0.3s;"></div>
+        </div>
+      </div>
+      ` : ''}
+      
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:52px;font-weight:900;margin-bottom:2px;font-family:'SF Mono',monospace;line-height:1;" id="paseo-tiempo">00:00</div>
+        <div style="font-size:11px;opacity:0.7;font-weight:600;">Tiempo transcurrido</div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:16px 8px;text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:#FBBF24;" id="paseo-distancia">0.00</div>
+          <div style="font-size:10px;opacity:0.7;font-weight:600;">kilómetros</div>
+        </div>
+        <div style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:16px 8px;text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:#4ADE80;font-family:'SF Mono',monospace;" id="paseo-ritmo">--:--</div>
+          <div style="font-size:10px;opacity:0.7;font-weight:600;">min/km (ritmo)</div>
+        </div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+        <div style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:14px;padding:12px 6px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#60A5FA;" id="paseo-pasos">0</div>
+          <div style="font-size:9px;opacity:0.7;font-weight:600;">pasos</div>
+        </div>
+        <div style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:12px 6px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#F87171;" id="paseo-calorias">0</div>
+          <div style="font-size:9px;opacity:0.7;font-weight:600;">calorías</div>
+        </div>
+        <div style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);border-radius:14px;padding:12px 6px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#C084FC;" id="paseo-velocidad">0</div>
+          <div style="font-size:9px;opacity:0.7;font-weight:600;">km/h</div>
+        </div>
+      </div>
+      
+      ${paseoMascota ? `
+      <div id="panel-perro" style="background:linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.2));border:1px solid rgba(245,158,11,0.4);border-radius:16px;padding:14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:28px;">🐕</div>
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:14px;">${paseoMascota.nombre || 'Mi perro'}</div>
+            <div style="font-size:10px;opacity:0.8;">${paseoMascota.raza || 'Raza desconocida'}${paseoMascota.edad ? ' · ' + paseoMascota.edad + ' años' : ''}</div>
+          </div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:16px;font-weight:800;color:#FBBF24;" id="perro-pasos">0</div>
+            <div style="font-size:9px;opacity:0.7;font-weight:600;">pasos del perro</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:8px;text-align:center;">
+            <div style="font-size:16px;font-weight:800;color:#F87171;" id="perro-calorias">0</div>
+            <div style="font-size:9px;opacity:0.7;font-weight:600;">cal del perro</div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;opacity:0.85;">
+            <span style="font-weight:700;">⚡ Energía del perro</span>
+            <span id="perro-energia-texto">Descansado</span>
+          </div>
+          <div style="width:100%;height:8px;background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden;">
+            <div id="perro-energia-fill" style="width:100%;height:100%;background:linear-gradient(90deg,#10B981,#F59E0B,#EF4444);transition:width 0.5s;"></div>
+          </div>
+        </div>
+        
+        <div id="perro-consejo" style="font-size:10px;color:#FDE68A;font-weight:600;margin-top:6px;text-align:center;">
+          ${getInfoRaza(paseoMascota.raza).comentario}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div style="background:rgba(255,255,255,0.05);border-radius:16px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:11px;opacity:0.8;font-weight:600;margin-bottom:8px;">🗺️ Tu recorrido</div>
+        <div id="paseo-mapa" style="width:100%;height:200px;border-radius:12px;background:#1E293B;overflow:hidden;"></div>
+      </div>
+      
+      <div style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px;text-align:center;font-size:11px;color:#6EE7B7;font-weight:600;">
+        🐾 Mantén la app abierta. Estás ayudando a detectar perros perdidos cerca.
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(pantalla);
+  
+  // Iniciar tracking GPS
+  paseoWatchId = navigator.geolocation.watchPosition(
+    onPaseoPosicion,
+    onPaseoError,
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+  
+  // Iniciar contador de tiempo
+  paseoTimerId = setInterval(actualizarTiempoPaseo, 1000);
+  
+  // Iniciar contador de pasos (usando acelerómetro)
+  iniciarContadorPasos();
+  
+  // Inicializar mapa
+  setTimeout(inicializarMapaPaseo, 300);
+  
+  paseoActivo = true;
+}
+
+// Inicializar mapa del paseo
+function inicializarMapaPaseo() {
+  try {
+    if (typeof L === 'undefined') return;
+    const contenedor = document.getElementById('paseo-mapa');
+    if (!contenedor) return;
+    
+    paseoMapa = L.map(contenedor, {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: true
+    }).setView([11.2404, -74.199], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(paseoMapa);
+    
+    paseoRutaLinea = L.polyline([], { color: '#F59E0B', weight: 5, opacity: 0.85 }).addTo(paseoMapa);
+    
+    // Marker para posición actual
+    if (paseoRuta.length > 0) {
+      const ultima = paseoRuta[paseoRuta.length - 1];
+      paseoMapa.setView([ultima.lat, ultima.lng], 16);
+    }
+  } catch(e) {
+    console.warn('Error creando mapa paseo:', e);
+  }
+}
+
+// GPS callback
+function onPaseoPosicion(pos) {
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  const nuevaPos = { lat, lng, ts: Date.now() };
+  
+  // Calcular distancia desde última posición
+  if (paseoUltimaPos) {
+    const dist = calcularDistancia(paseoUltimaPos.lat, paseoUltimaPos.lng, lat, lng);
+    // Solo sumar si es razonable (evitar saltos GPS)
+    if (dist < 0.05) { // Máximo 50m entre puntos (evita ruido)
+      paseoDistancia += dist;
+    }
+  }
+  
+  paseoRuta.push(nuevaPos);
+  paseoUltimaPos = nuevaPos;
+  
+  // Actualizar UI
+  const distEl = document.getElementById('paseo-distancia');
+  if (distEl) distEl.textContent = paseoDistancia.toFixed(2);
+  
+  const calEl = document.getElementById('paseo-calorias');
+  if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
+  
+  // Actualizar ritmo (min/km)
+  const ritmo = calcularRitmo();
+  const ritmoEl = document.getElementById('paseo-ritmo');
+  if (ritmoEl) ritmoEl.textContent = formatearRitmo(ritmo);
+  
+  // Actualizar velocidad (km/h)
+  const velEl = document.getElementById('paseo-velocidad');
+  if (velEl && ritmo) {
+    const velocidad = 60 / ritmo; // km/h
+    velEl.textContent = velocidad.toFixed(1);
+  }
+  
+  // Actualizar progreso del objetivo
+  actualizarProgresoObjetivo();
+  
+  // Actualizar datos del perro
+  actualizarDatosPerro();
+  
+  // Avisar cada km completado
+  const kmActual = Math.floor(paseoDistancia);
+  if (kmActual > paseoUltimoKmAvisado && kmActual >= 1) {
+    paseoUltimoKmAvisado = kmActual;
+    mostrarToastPaseo('🎯 ¡' + kmActual + ' km completado! Ritmo: ' + formatearRitmo(ritmo));
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  }
+  
+  // Aviso de agua para el perro (a los 30 min o 1.5 km)
+  if (paseoMascota && !paseoAguaAvisada) {
+    const minutos = (Date.now() - paseoInicio) / 60000;
+    if (minutos >= 30 || paseoDistancia >= 1.5) {
+      paseoAguaAvisada = true;
+      mostrarToastPaseo('💧 Dale agua a ' + (paseoMascota.nombre || 'tu perro'));
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+  }
+  
+  // Actualizar mapa
+  if (paseoRutaLinea) {
+    paseoRutaLinea.setLatLngs(paseoRuta.map(p => [p.lat, p.lng]));
+  }
+  if (paseoMapa && paseoRuta.length > 0) {
+    paseoMapa.panTo([lat, lng]);
+  }
+}
+
+function onPaseoError(err) {
+  console.warn('Error GPS paseo:', err);
+}
+
+// Actualizar tiempo cada segundo
+function actualizarTiempoPaseo() {
+  if (!paseoInicio) return;
+  const ms = Date.now() - paseoInicio;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  const el = document.getElementById('paseo-tiempo');
+  if (el) el.textContent = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+  
+  // Actualizar objetivo si es de tiempo o calorías
+  if (paseoObjetivo && (paseoObjetivo.tipo === 'tiempo' || paseoObjetivo.tipo === 'calorias')) {
+    actualizarProgresoObjetivo();
+  }
+}
+
+// Contador de pasos usando acelerómetro
+let pasosAcelerometro = { lastMag: 0, threshold: 12 };
+function iniciarContadorPasos() {
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', function(e) {
+      if (!paseoActivo) return;
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const mag = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+      const diff = Math.abs(mag - pasosAcelerometro.lastMag);
+      if (diff > 3 && mag > pasosAcelerometro.threshold) {
+        paseoPasos++;
+        const el = document.getElementById('paseo-pasos');
+        if (el) el.textContent = paseoPasos.toLocaleString();
+      }
+      pasosAcelerometro.lastMag = mag;
+    });
+  }
+}
+
+// Calcular distancia entre 2 puntos GPS (Haversine)
+function calcularDistancia(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Radio Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Finalizar paseo
+function finalizarPaseo() {
+  if (!confirm('¿Terminar el paseo?')) return;
+  
+  paseoActivo = false;
+  
+  // Detener GPS
+  if (paseoWatchId !== null) {
+    navigator.geolocation.clearWatch(paseoWatchId);
+    paseoWatchId = null;
+  }
+  
+  // Detener timer
+  if (paseoTimerId) {
+    clearInterval(paseoTimerId);
+    paseoTimerId = null;
+  }
+  
+  const duracionMin = Math.floor((Date.now() - paseoInicio) / 60000);
+  const calorias = paseoDistancia * 52; // ~52 cal/km para persona promedio
+  
+  // Guardar paseo
+  const paseo = {
+    fecha: new Date().toISOString(),
+    distancia: paseoDistancia,
+    duracion: duracionMin,
+    pasos: paseoPasos,
+    calorias: calorias,
+    ruta: paseoRuta
+  };
+  
+  guardarPaseo(paseo);
+  
+  // Cerrar pantalla de paseo activo
+  const pantalla = document.getElementById('pantalla-paseo-activo');
+  if (pantalla) pantalla.remove();
+  
+  // Mostrar resumen
+  mostrarResumenPaseo(paseo);
+}
+
+// Mostrar resumen al finalizar
+function mostrarResumenPaseo(paseo) {
+  const m = document.createElement('div');
+  m.className = 'huellaviva-modal';
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#F59E0B,#DC2626);z-index:9998;overflow-y:auto;color:#fff;padding:20px;';
+  
+  const nuevoLogro = verificarNuevoLogro();
+  
+  // Datos del perro
+  let seccionPerro = '';
+  if (paseoMascota) {
+    const info = getInfoRaza(paseoMascota.raza);
+    const peso = paseoMascota.peso ? parseFloat(paseoMascota.peso) : 15;
+    const perroPasos = Math.round(paseo.pasos * info.factor_pasos);
+    const perroCal = paseo.distancia * peso * 1.5 * info.factor_energia;
+    
+    seccionPerro = `
+      <div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="font-size:36px;">🐕</div>
+          <div>
+            <div style="font-weight:800;font-size:16px;">${paseoMascota.nombre || 'Mi perro'}</div>
+            <div style="font-size:11px;opacity:0.85;">${paseoMascota.raza || 'Raza mixta'}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div style="font-size:24px;font-weight:900;">${perroPasos.toLocaleString()}</div>
+            <div style="font-size:10px;opacity:0.85;font-weight:600;">pasos del perro</div>
+          </div>
+          <div>
+            <div style="font-size:24px;font-weight:900;">${Math.round(perroCal)}</div>
+            <div style="font-size:10px;opacity:0.85;font-weight:600;">cal del perro</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.1);border-radius:10px;font-size:11px;font-weight:600;text-align:center;line-height:1.5;">
+          💧 Recuerda darle agua fresca<br>
+          ${paseo.distancia > info.max_km ? '⚠️ Fue un paseo largo, dale descanso' : '✅ Fue una distancia adecuada'}
+        </div>
+      </div>
+    `;
+  }
+  
+  m.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;text-align:center;padding-top:40px;">
+      <div style="font-size:80px;margin-bottom:12px;">🎉</div>
+      <div style="font-size:28px;font-weight:900;margin-bottom:8px;">¡Paseo terminado!</div>
+      <div style="font-size:14px;opacity:0.9;margin-bottom:32px;">Excelente trabajo, sigue así</div>
+      
+      <div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:24px;margin-bottom:20px;backdrop-filter:blur(10px);">
+        <div style="font-size:11px;opacity:0.85;font-weight:700;margin-bottom:12px;text-align:left;">👤 TÚ</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-size:32px;font-weight:900;">${paseo.distancia.toFixed(2)}</div>
+            <div style="font-size:11px;opacity:0.85;font-weight:600;">km recorridos</div>
+          </div>
+          <div>
+            <div style="font-size:32px;font-weight:900;">${paseo.duracion}</div>
+            <div style="font-size:11px;opacity:0.85;font-weight:600;">minutos</div>
+          </div>
+          <div>
+            <div style="font-size:32px;font-weight:900;">${paseo.pasos.toLocaleString()}</div>
+            <div style="font-size:11px;opacity:0.85;font-weight:600;">pasos</div>
+          </div>
+          <div>
+            <div style="font-size:32px;font-weight:900;">${Math.round(paseo.calorias)}</div>
+            <div style="font-size:11px;opacity:0.85;font-weight:600;">calorías</div>
+          </div>
+        </div>
+      </div>
+      
+      ${seccionPerro}
+      
+      ${nuevoLogro ? `
+      <div style="background:#fff;color:#DC2626;border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:fadeInUp 0.6s ease both;">
+        <div style="font-size:40px;margin-bottom:4px;">🏆</div>
+        <div style="font-weight:800;font-size:15px;margin-bottom:2px;">¡NUEVO LOGRO!</div>
+        <div style="font-size:13px;font-weight:600;">${nuevoLogro}</div>
+      </div>
+      ` : ''}
+      
+      <button onclick="this.closest('.huellaviva-modal').remove(); abrirPaseo();" style="width:100%;background:#fff;color:#DC2626;border:none;padding:16px;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;">
+        Ver historial
+      </button>
+      <button onclick="this.closest('.huellaviva-modal').remove();" style="width:100%;background:transparent;color:#fff;border:2px solid rgba(255,255,255,0.5);padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">
+        Cerrar
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(m);
+}
+
+// Guardar paseo en localStorage
+function guardarPaseo(paseo) {
+  try {
+    const historial = JSON.parse(localStorage.getItem('hv-paseos') || '[]');
+    historial.unshift(paseo);
+    // Solo conservar últimos 100
+    if (historial.length > 100) historial.length = 100;
+    localStorage.setItem('hv-paseos', JSON.stringify(historial));
+  } catch(e) {
+    console.warn('Error guardando paseo:', e);
+  }
+}
+
+function obtenerHistorialPaseos() {
+  try {
+    return JSON.parse(localStorage.getItem('hv-paseos') || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+// Calcular racha de días seguidos
+function calcularRacha(historial) {
+  if (historial.length === 0) return 0;
+  const dias = new Set();
+  historial.forEach(p => {
+    const fecha = new Date(p.fecha).toISOString().split('T')[0];
+    dias.add(fecha);
+  });
+  
+  const hoy = new Date().toISOString().split('T')[0];
+  const ayer = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  
+  if (!dias.has(hoy) && !dias.has(ayer)) return 0;
+  
+  let racha = 0;
+  let fecha = new Date();
+  while (true) {
+    const fechaStr = fecha.toISOString().split('T')[0];
+    if (dias.has(fechaStr)) {
+      racha++;
+      fecha.setDate(fecha.getDate() - 1);
+    } else if (racha === 0 && fechaStr === hoy) {
+      // Si no hay paseo hoy, empezar desde ayer
+      fecha.setDate(fecha.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return racha;
+}
+
+// Verificar nuevos logros
+function verificarNuevoLogro() {
+  const historial = obtenerHistorialPaseos();
+  const totalPaseos = historial.length;
+  const totalKm = historial.reduce((s, p) => s + (p.distancia || 0), 0);
+  const racha = calcularRacha(historial);
+  const logrosGanados = JSON.parse(localStorage.getItem('hv-logros') || '[]');
+  
+  const nuevoLogros = [];
+  
+  const posibles = [
+    { id: 'primer-paseo', nombre: 'Primer paseo 🐾', cond: () => totalPaseos >= 1 },
+    { id: 'tres-paseos', nombre: '3 paseos completados', cond: () => totalPaseos >= 3 },
+    { id: 'diez-paseos', nombre: '10 paseos - ¡Constante!', cond: () => totalPaseos >= 10 },
+    { id: 'cinco-km', nombre: '5 km acumulados', cond: () => totalKm >= 5 },
+    { id: 'diez-km', nombre: '10 km acumulados', cond: () => totalKm >= 10 },
+    { id: 'veinticinco-km', nombre: '25 km recorridos', cond: () => totalKm >= 25 },
+    { id: 'cien-km', nombre: '100 km - ¡Legendario!', cond: () => totalKm >= 100 },
+    { id: 'racha-3', nombre: '3 días seguidos', cond: () => racha >= 3 },
+    { id: 'racha-7', nombre: '¡Una semana entera!', cond: () => racha >= 7 },
+    { id: 'racha-30', nombre: '30 días sin parar', cond: () => racha >= 30 }
+  ];
+  
+  for (const logro of posibles) {
+    if (!logrosGanados.includes(logro.id) && logro.cond()) {
+      nuevoLogros.push(logro);
+      logrosGanados.push(logro.id);
+    }
+  }
+  
+  if (nuevoLogros.length > 0) {
+    localStorage.setItem('hv-logros', JSON.stringify(logrosGanados));
+    return nuevoLogros[0].nombre;
+  }
+  return null;
+}
+
+// Renderizar logros
+function renderLogros(totalPaseos, totalKm, racha) {
+  const logrosGanados = JSON.parse(localStorage.getItem('hv-logros') || '[]');
+  if (logrosGanados.length === 0) return '';
+  
+  const todos = {
+    'primer-paseo': '🐾 Primer paseo',
+    'tres-paseos': '🥉 3 paseos',
+    'diez-paseos': '🥈 10 paseos',
+    'cinco-km': '📍 5 km',
+    'diez-km': '📍 10 km',
+    'veinticinco-km': '🎯 25 km',
+    'cien-km': '🏆 100 km',
+    'racha-3': '🔥 3 días',
+    'racha-7': '🔥 7 días',
+    'racha-30': '💎 30 días'
+  };
+  
+  return `
+    <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="font-weight:800;font-size:14px;color:#374151;margin-bottom:12px;">🏆 Logros desbloqueados</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${logrosGanados.map(id => todos[id] ? `
+          <div style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#78350F;padding:6px 12px;border-radius:16px;font-size:11px;font-weight:700;">${todos[id]}</div>
+        ` : '').join('')}
+      </div>
+    </div>
+  `;
+}
+
+// Formatear fecha
+function formatFecha(iso) {
+  const d = new Date(iso);
+  const hoy = new Date();
+  const ayer = new Date(Date.now() - 86400000);
+  
+  if (d.toDateString() === hoy.toDateString()) return 'Hoy ' + d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === ayer.toDateString()) return 'Ayer ' + d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+}
+
 </script>
 <div style="text-align:center;padding:18px 20px 90px;font-size:12px;color:#9CA3AF;line-height:1.7;">
   <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">

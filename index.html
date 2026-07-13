@@ -4311,8 +4311,11 @@ function actualizarDatosPerro() {
   const info = getInfoRaza(paseoMascota.raza);
   const factorEdad = getFactorEdad(paseoMascota.edad);
   
-  // Pasos del perro (aprox 3x los del humano ajustado por raza)
-  const perroPasos = Math.round(paseoPasos * info.factor_pasos);
+  // Pasos del perro basados en DISTANCIA (más confiable que acelerómetro)
+  // Perros dan más pasos por km según tamaño:
+  // Pequeño: ~2200 pasos/km | Mediano: ~1600 pasos/km | Grande: ~1200 pasos/km
+  const pasosXKm = info.max_km <= 2 ? 2200 : info.max_km <= 5 ? 1800 : 1400;
+  const perroPasos = Math.round(paseoDistancia * pasosXKm);
   const perroPasosEl = document.getElementById('perro-pasos');
   if (perroPasosEl) perroPasosEl.textContent = perroPasos.toLocaleString();
   
@@ -4803,6 +4806,9 @@ function onPaseoPosicion(pos) {
   const distEl = document.getElementById('paseo-distancia');
   if (distEl) distEl.textContent = paseoDistancia.toFixed(2);
   
+  // Actualizar pasos con fórmula distancia (backup del acelerómetro)
+  actualizarPasosUI();
+  
   const calEl = document.getElementById('paseo-calorias');
   if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
   
@@ -4871,7 +4877,7 @@ function actualizarTiempoPaseo() {
 }
 
 // Contador de pasos usando acelerómetro
-let pasosAcelerometro = { lastMag: 0, threshold: 12 };
+let pasosAcelerometro = { lastMag: 0, threshold: 10, lastStep: 0 };
 function iniciarContadorPasos() {
   if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', function(e) {
@@ -4880,13 +4886,28 @@ function iniciarContadorPasos() {
       if (!acc) return;
       const mag = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
       const diff = Math.abs(mag - pasosAcelerometro.lastMag);
-      if (diff > 3 && mag > pasosAcelerometro.threshold) {
+      const ahora = Date.now();
+      // Threshold más sensible + tiempo mínimo entre pasos (300ms = 200 pasos/min max)
+      if (diff > 1.5 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 300) {
         paseoPasos++;
-        const el = document.getElementById('paseo-pasos');
-        if (el) el.textContent = paseoPasos.toLocaleString();
+        pasosAcelerometro.lastStep = ahora;
+        actualizarPasosUI();
       }
       pasosAcelerometro.lastMag = mag;
     });
+  }
+}
+
+// Actualizar UI de pasos (usando el máximo entre acelerómetro y estimación por distancia)
+function actualizarPasosUI() {
+  // Los humanos dan ~1300 pasos por km caminando
+  const pasosEstimadosPorDistancia = Math.round(paseoDistancia * 1300);
+  const pasosMostrados = Math.max(paseoPasos, pasosEstimadosPorDistancia);
+  const el = document.getElementById('paseo-pasos');
+  if (el) el.textContent = pasosMostrados.toLocaleString();
+  // Actualizar paseoPasos para que sea el mostrado
+  if (pasosEstimadosPorDistancia > paseoPasos) {
+    paseoPasos = pasosEstimadosPorDistancia;
   }
 }
 
@@ -4930,7 +4951,14 @@ function finalizarPaseo() {
     duracion: duracionMin,
     pasos: paseoPasos,
     calorias: calorias,
-    ruta: paseoRuta
+    ruta: paseoRuta,
+    mascota: paseoMascota ? { 
+      nombre: paseoMascota.nombre, 
+      raza: paseoMascota.raza, 
+      edad: paseoMascota.edad, 
+      peso: paseoMascota.peso,
+      foto_url: paseoMascota.foto_url 
+    } : null
   };
   
   guardarPaseo(paseo);
@@ -4951,37 +4979,54 @@ function mostrarResumenPaseo(paseo) {
   
   const nuevoLogro = verificarNuevoLogro();
   
-  // Datos del perro
+  // Datos del perro (usar paseo.mascota que ya se guardó)
+  const mascota = paseo.mascota || paseoMascota;
   let seccionPerro = '';
-  if (paseoMascota) {
-    const info = getInfoRaza(paseoMascota.raza);
-    const peso = paseoMascota.peso ? parseFloat(paseoMascota.peso) : 15;
-    const perroPasos = Math.round(paseo.pasos * info.factor_pasos);
+  if (mascota) {
+    const info = getInfoRaza(mascota.raza);
+    const peso = mascota.peso ? parseFloat(mascota.peso) : 15;
+    const pasosXKm = info.max_km <= 2 ? 2200 : info.max_km <= 5 ? 1800 : 1400;
+    const perroPasos = Math.round(paseo.distancia * pasosXKm);
     const perroCal = paseo.distancia * peso * 1.5 * info.factor_energia;
     
     seccionPerro = `
-      <div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <div style="font-size:36px;">🐕</div>
-          <div>
-            <div style="font-weight:800;font-size:16px;">${paseoMascota.nombre || 'Mi perro'}</div>
-            <div style="font-size:11px;opacity:0.85;">${paseoMascota.raza || 'Raza mixta'}</div>
+      <div style="background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.3);border-radius:20px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          ${mascota.foto_url 
+            ? `<img src="${mascota.foto_url}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid #FBBF24;box-shadow:0 4px 12px rgba(0,0,0,0.3);"/>`
+            : `<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:32px;">🐕</div>`
+          }
+          <div style="text-align:left;flex:1;">
+            <div style="font-size:11px;opacity:0.85;font-weight:700;">🐕 TU PERRO</div>
+            <div style="font-weight:800;font-size:17px;">${mascota.nombre || 'Mi perro'}</div>
+            <div style="font-size:11px;opacity:0.85;">${mascota.raza || 'Raza mixta'}${mascota.edad ? ' · ' + mascota.edad + ' años' : ''}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div>
-            <div style="font-size:24px;font-weight:900;">${perroPasos.toLocaleString()}</div>
-            <div style="font-size:10px;opacity:0.85;font-weight:600;">pasos del perro</div>
+          <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;">
+            <div style="font-size:26px;font-weight:900;">${perroPasos.toLocaleString()}</div>
+            <div style="font-size:10px;opacity:0.85;font-weight:600;">🐾 pasos del perro</div>
           </div>
-          <div>
-            <div style="font-size:24px;font-weight:900;">${Math.round(perroCal)}</div>
-            <div style="font-size:10px;opacity:0.85;font-weight:600;">cal del perro</div>
+          <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;">
+            <div style="font-size:26px;font-weight:900;">${Math.round(perroCal)}</div>
+            <div style="font-size:10px;opacity:0.85;font-weight:600;">🔥 cal del perro</div>
           </div>
         </div>
-        <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.1);border-radius:10px;font-size:11px;font-weight:600;text-align:center;line-height:1.5;">
+        <div style="margin-top:12px;padding:10px;background:rgba(0,0,0,0.2);border-radius:10px;font-size:11px;font-weight:600;text-align:center;line-height:1.5;">
           💧 Recuerda darle agua fresca<br>
           ${paseo.distancia > info.max_km ? '⚠️ Fue un paseo largo, dale descanso' : '✅ Fue una distancia adecuada'}
         </div>
+      </div>
+    `;
+  }
+  
+  // Sección del mapa con recorrido
+  let seccionMapa = '';
+  if (paseo.ruta && paseo.ruta.length > 1) {
+    seccionMapa = `
+      <div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:16px;margin-bottom:20px;backdrop-filter:blur(10px);">
+        <div style="font-size:11px;opacity:0.85;font-weight:700;margin-bottom:10px;text-align:left;">🗺️ TU RECORRIDO</div>
+        <div id="resumen-mapa" style="width:100%;height:220px;border-radius:14px;background:#1E293B;overflow:hidden;"></div>
       </div>
     `;
   }
@@ -5016,6 +5061,8 @@ function mostrarResumenPaseo(paseo) {
       
       ${seccionPerro}
       
+      ${seccionMapa}
+      
       ${nuevoLogro ? `
       <div style="background:#fff;color:#DC2626;border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:fadeInUp 0.6s ease both;">
         <div style="font-size:40px;margin-bottom:4px;">🏆</div>
@@ -5034,6 +5081,46 @@ function mostrarResumenPaseo(paseo) {
   `;
   
   document.body.appendChild(m);
+  
+  // Renderizar el mapa del recorrido después de agregar el modal al DOM
+  if (paseo.ruta && paseo.ruta.length > 1 && typeof L !== 'undefined') {
+    setTimeout(() => {
+      try {
+        const contenedor = document.getElementById('resumen-mapa');
+        if (!contenedor) return;
+        
+        const resumenMapa = L.map(contenedor, {
+          zoomControl: false,
+          attributionControl: false,
+          dragging: false,
+          touchZoom: false,
+          doubleClickZoom: false,
+          scrollWheelZoom: false
+        });
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(resumenMapa);
+        
+        // Dibujar la ruta
+        const puntos = paseo.ruta.map(p => [p.lat, p.lng]);
+        const linea = L.polyline(puntos, { color: '#F59E0B', weight: 5, opacity: 0.9 }).addTo(resumenMapa);
+        
+        // Marcador de inicio (verde)
+        L.circleMarker(puntos[0], {
+          radius: 8, fillColor: '#10B981', color: '#fff', weight: 2, fillOpacity: 1
+        }).addTo(resumenMapa).bindTooltip('Inicio', { permanent: false });
+        
+        // Marcador de fin (rojo)
+        L.circleMarker(puntos[puntos.length - 1], {
+          radius: 8, fillColor: '#EF4444', color: '#fff', weight: 2, fillOpacity: 1
+        }).addTo(resumenMapa).bindTooltip('Fin', { permanent: false });
+        
+        // Ajustar zoom para ver toda la ruta
+        resumenMapa.fitBounds(linea.getBounds(), { padding: [20, 20] });
+      } catch(e) {
+        console.warn('Error renderizando mapa resumen:', e);
+      }
+    }, 300);
+  }
 }
 
 // Guardar paseo en localStorage

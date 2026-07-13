@@ -5279,13 +5279,38 @@ function inicializarMapaPaseo() {
 function onPaseoPosicion(pos) {
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
-  const nuevaPos = { lat, lng, ts: Date.now() };
+  const accuracy = pos.coords.accuracy || 999; // Precisión en metros
+  const nuevaPos = { lat, lng, ts: Date.now(), accuracy };
+  
+  // FILTRO 1: Descartar puntos con mala precisión (>25 metros de error)
+  if (accuracy > 25) {
+    console.log('🛰️ GPS impreciso, ignorado:', accuracy + 'm');
+    return;
+  }
   
   // Calcular distancia desde última posición
   if (paseoUltimaPos) {
     const dist = calcularDistancia(paseoUltimaPos.lat, paseoUltimaPos.lng, lat, lng);
-    // Solo sumar si es razonable (evitar saltos GPS)
-    if (dist < 0.05) { // Máximo 50m entre puntos (evita ruido)
+    const tiempoTranscurridoSeg = (nuevaPos.ts - paseoUltimaPos.ts) / 1000;
+    const velocidadMetrosSeg = (dist * 1000) / tiempoTranscurridoSeg;
+    const velocidadKmH = velocidadMetrosSeg * 3.6;
+    
+    // FILTRO 2: Ignorar si velocidad es menor a 1 km/h (estás quieto o drift GPS)
+    if (velocidadKmH < 1.0) {
+      console.log('🚶 Velocidad muy baja (', velocidadKmH.toFixed(1), 'km/h) - drift GPS ignorado');
+      paseoUltimaPos = nuevaPos; // Actualizar pos pero no sumar distancia
+      return;
+    }
+    
+    // FILTRO 3: Ignorar saltos irreales (>30 km/h corriendo con perro es raro)
+    if (velocidadKmH > 30) {
+      console.log('🚀 Salto GPS irreal (', velocidadKmH.toFixed(1), 'km/h) - ignorado');
+      paseoUltimaPos = nuevaPos;
+      return;
+    }
+    
+    // FILTRO 4: Solo sumar si distancia es razonable
+    if (dist < 0.05) { // Máximo 50m entre puntos
       paseoDistancia += dist;
     }
   }
@@ -5374,7 +5399,7 @@ function actualizarTiempoPaseo() {
 }
 
 // Contador de pasos usando acelerómetro
-let pasosAcelerometro = { lastMag: 0, threshold: 10, lastStep: 0 };
+let pasosAcelerometro = { lastMag: 0, threshold: 11.5, lastStep: 0, historial: [] };
 function iniciarContadorPasos() {
   if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', function(e) {
@@ -5384,8 +5409,12 @@ function iniciarContadorPasos() {
       const mag = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
       const diff = Math.abs(mag - pasosAcelerometro.lastMag);
       const ahora = Date.now();
-      // Threshold más sensible + tiempo mínimo entre pasos (300ms = 200 pasos/min max)
-      if (diff > 1.5 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 300) {
+      
+      // FILTRO ESTRICTO para evitar contar sentado:
+      // 1. Cambio significativo (>3, era 1.5)
+      // 2. Magnitud alta (>11.5, era 10)
+      // 3. Tiempo mínimo entre pasos (350ms = max 170 pasos/min, era 300)
+      if (diff > 3 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 350) {
         paseoPasos++;
         pasosAcelerometro.lastStep = ahora;
         actualizarPasosUI();

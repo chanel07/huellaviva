@@ -5282,9 +5282,10 @@ function onPaseoPosicion(pos) {
   const accuracy = pos.coords.accuracy || 999; // Precisión en metros
   const nuevaPos = { lat, lng, ts: Date.now(), accuracy };
   
-  // FILTRO 1: Descartar puntos con mala precisión (>25 metros de error)
-  if (accuracy > 25) {
-    console.log('🛰️ GPS impreciso, ignorado:', accuracy + 'm');
+  // FILTRO 1: Descartar puntos con GPS MUY malo (>50m de error)
+  // Balance: no tan estricto para no descartar todo
+  if (accuracy > 50) {
+    console.log('🛰️ GPS muy impreciso, ignorado:', accuracy + 'm');
     return;
   }
   
@@ -5292,27 +5293,37 @@ function onPaseoPosicion(pos) {
   if (paseoUltimaPos) {
     const dist = calcularDistancia(paseoUltimaPos.lat, paseoUltimaPos.lng, lat, lng);
     const tiempoTranscurridoSeg = (nuevaPos.ts - paseoUltimaPos.ts) / 1000;
-    const velocidadMetrosSeg = (dist * 1000) / tiempoTranscurridoSeg;
-    const velocidadKmH = velocidadMetrosSeg * 3.6;
     
-    // FILTRO 2: Ignorar si velocidad es menor a 1 km/h (estás quieto o drift GPS)
-    if (velocidadKmH < 1.0) {
-      console.log('🚶 Velocidad muy baja (', velocidadKmH.toFixed(1), 'km/h) - drift GPS ignorado');
-      paseoUltimaPos = nuevaPos; // Actualizar pos pero no sumar distancia
-      return;
+    // Solo aplicar filtros si tiempo es razonable (>0.5 seg)
+    if (tiempoTranscurridoSeg > 0.5) {
+      const velocidadMetrosSeg = (dist * 1000) / tiempoTranscurridoSeg;
+      const velocidadKmH = velocidadMetrosSeg * 3.6;
+      
+      // FILTRO 2: Ignorar si distancia es MUY pequeña (<5 metros)
+      // 5 metros en cualquier tiempo = probablemente drift
+      if (dist * 1000 < 5) {
+        console.log('🚶 Movimiento muy pequeño (<5m) - drift ignorado');
+        paseoUltimaPos = nuevaPos; // Actualiza pos pero no suma
+        return;
+      }
+      
+      // FILTRO 3: Ignorar saltos irreales (>25 km/h caminando/corriendo)
+      if (velocidadKmH > 25) {
+        console.log('🚀 Salto GPS irreal (', velocidadKmH.toFixed(1), 'km/h) - ignorado');
+        paseoUltimaPos = nuevaPos;
+        return;
+      }
+      
+      // FILTRO 4: Ignorar si distancia es enorme (>100m entre puntos = raro)
+      if (dist > 0.1) {
+        console.log('🚀 Salto de distancia grande:', dist.toFixed(3), 'km - ignorado');
+        paseoUltimaPos = nuevaPos;
+        return;
+      }
     }
     
-    // FILTRO 3: Ignorar saltos irreales (>30 km/h corriendo con perro es raro)
-    if (velocidadKmH > 30) {
-      console.log('🚀 Salto GPS irreal (', velocidadKmH.toFixed(1), 'km/h) - ignorado');
-      paseoUltimaPos = nuevaPos;
-      return;
-    }
-    
-    // FILTRO 4: Solo sumar si distancia es razonable
-    if (dist < 0.05) { // Máximo 50m entre puntos
-      paseoDistancia += dist;
-    }
+    // Sumar distancia si pasa filtros
+    paseoDistancia += dist;
   }
   
   paseoRuta.push(nuevaPos);
@@ -5399,7 +5410,7 @@ function actualizarTiempoPaseo() {
 }
 
 // Contador de pasos usando acelerómetro
-let pasosAcelerometro = { lastMag: 0, threshold: 11.5, lastStep: 0, historial: [] };
+let pasosAcelerometro = { lastMag: 0, threshold: 11, lastStep: 0, historial: [] };
 function iniciarContadorPasos() {
   if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', function(e) {
@@ -5410,11 +5421,11 @@ function iniciarContadorPasos() {
       const diff = Math.abs(mag - pasosAcelerometro.lastMag);
       const ahora = Date.now();
       
-      // FILTRO ESTRICTO para evitar contar sentado:
-      // 1. Cambio significativo (>3, era 1.5)
-      // 2. Magnitud alta (>11.5, era 10)
-      // 3. Tiempo mínimo entre pasos (350ms = max 170 pasos/min, era 300)
-      if (diff > 3 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 350) {
+      // Filtros balanceados:
+      // 1. Cambio moderado (>2.5)
+      // 2. Magnitud >11 (movimiento definido)
+      // 3. Tiempo mínimo 300ms entre pasos
+      if (diff > 2.5 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 300) {
         paseoPasos++;
         pasosAcelerometro.lastStep = ahora;
         actualizarPasosUI();

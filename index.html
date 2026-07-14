@@ -4881,87 +4881,149 @@ async function compartirPaseo(paseoData) {
     canvas.height = 1350;
     const ctx = canvas.getContext('2d');
     
+    // FONDO con gradiente sutil
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#F59E0B');
-    gradient.addColorStop(0.5, '#DC2626');
+    gradient.addColorStop(0.55, '#DC2626');
     gradient.addColorStop(1, '#7C3AED');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    // Círculos decorativos
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.beginPath();
-    ctx.arc(canvas.width - 100, 150, 200, 0, Math.PI * 2);
+    ctx.arc(canvas.width - 80, 100, 220, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(100, canvas.height - 100, 150, 0, Math.PI * 2);
+    ctx.arc(80, canvas.height - 80, 180, 0, Math.PI * 2);
     ctx.fill();
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 40px system-ui, -apple-system';
-    ctx.textAlign = 'left';
-    ctx.fillText('🐾 HuellaViva', 60, 90);
     
     const mascota = paseo.mascota;
-    let yContent = 220;
+    
+    // ==============================================
+    // HEADER: Logo + Badge de logro
+    // ==============================================
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 38px system-ui, -apple-system';
+    ctx.textAlign = 'left';
+    ctx.fillText('🐾 HuellaViva', 60, 85);
+    
+    // Badge de logro (arriba derecha)
+    ctx.font = 'bold 34px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText('🏅', canvas.width - 60, 85);
+    
+    // ==============================================
+    // NOMBRE ARRIBA (protagonista, muy visible)
+    // ==============================================
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FBBF24';
+    ctx.font = 'bold 38px system-ui';
+    const nombreCompleto = mascota && mascota.nombre 
+      ? `${mascota.nombre} y yo caminamos`
+      : 'Hoy caminé';
+    ctx.fillText(nombreCompleto, canvas.width / 2, 170);
+    
+    // ==============================================
+    // FOTO GRANDE del perro (más protagonista)
+    // ==============================================
+    let yFoto = 210;
+    const sizeFoto = 460; // Más grande que antes (era 400)
     
     if (mascota && mascota.foto_url) {
       try {
         const img = await cargarImagen(mascota.foto_url);
-        const size = 400;
-        const x = (canvas.width - size) / 2;
-        const y = yContent;
+        const x = (canvas.width - sizeFoto) / 2;
+        const y = yFoto;
         
+        // Sombra fuerte
         ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetY = 10;
+        
+        // Círculo dorado más grueso
         ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2 + 8, 0, Math.PI * 2);
+        ctx.arc(x + sizeFoto/2, y + sizeFoto/2, sizeFoto/2 + 12, 0, Math.PI * 2);
         ctx.fillStyle = '#FBBF24';
         ctx.fill();
-        
-        ctx.beginPath();
-        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, x, y, size, size);
         ctx.restore();
         
-        yContent += size + 60;
-      } catch(e) {
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        // Círculo interno blanco (borde)
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(canvas.width / 2, yContent + 200, 200, 0, Math.PI * 2);
+        ctx.arc(x + sizeFoto/2, y + sizeFoto/2, sizeFoto/2 + 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff';
         ctx.fill();
-        ctx.font = '200px system-ui';
+        ctx.restore();
+        
+        // Foto
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + sizeFoto/2, y + sizeFoto/2, sizeFoto/2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, x, y, sizeFoto, sizeFoto);
+        ctx.restore();
+      } catch(e) {
+        // Fallback si falla carga de imagen
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = '#FBBF24';
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, yFoto + sizeFoto/2, sizeFoto/2 + 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, yFoto + sizeFoto/2, sizeFoto/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '220px system-ui';
         ctx.textAlign = 'center';
-        ctx.fillText('🐕', canvas.width / 2, yContent + 260);
-        yContent += 480;
+        ctx.fillStyle = '#fff';
+        ctx.fillText('🐕', canvas.width / 2, yFoto + sizeFoto/2 + 80);
       }
     } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      // Sin foto - emoji grande
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 30;
+      ctx.fillStyle = '#FBBF24';
       ctx.beginPath();
-      ctx.arc(canvas.width / 2, yContent + 200, 200, 0, Math.PI * 2);
+      ctx.arc(canvas.width / 2, yFoto + sizeFoto/2, sizeFoto/2 + 12, 0, Math.PI * 2);
       ctx.fill();
-      ctx.font = '200px system-ui';
+      ctx.restore();
+      
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, yFoto + sizeFoto/2, sizeFoto/2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '220px system-ui';
       ctx.textAlign = 'center';
-      ctx.fillText('🐕', canvas.width / 2, yContent + 260);
-      yContent += 480;
+      ctx.fillStyle = '#fff';
+      ctx.fillText('🐕', canvas.width / 2, yFoto + sizeFoto/2 + 80);
     }
     
-    ctx.fillStyle = '#fff';
+    let yContent = yFoto + sizeFoto + 50;
+    
+    // ==============================================
+    // DISTANCIA GRANDE (número principal)
+    // ==============================================
     ctx.textAlign = 'center';
-    ctx.font = 'bold 42px system-ui';
-    const nombreCompleto = mascota && mascota.nombre 
-      ? `${mascota.nombre} y yo caminamos`
-      : 'Hoy caminé';
-    ctx.fillText(nombreCompleto, canvas.width / 2, yContent);
-    yContent += 90;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 150px system-ui';
+    ctx.fillText(`${paseo.distancia.toFixed(2)} km`, canvas.width / 2, yContent + 50);
+    yContent += 110;
     
-    ctx.font = 'bold 140px system-ui';
-    ctx.fillText(`${paseo.distancia.toFixed(2)} km`, canvas.width / 2, yContent);
-    yContent += 30;
+    // Emoji patitas
+    ctx.font = '50px system-ui';
+    ctx.fillText('🐾', canvas.width / 2, yContent + 40);
+    yContent += 80;
     
-    ctx.font = '60px system-ui';
-    ctx.fillText('🐾', canvas.width / 2, yContent + 60);
-    yContent += 100;
-    
+    // ==============================================
+    // ESTADÍSTICAS en grid
+    // ==============================================
     const stats = [
       { label: 'MINUTOS', valor: paseo.duracion },
       { label: 'PASOS', valor: paseo.pasos.toLocaleString() },
@@ -4969,7 +5031,7 @@ async function compartirPaseo(paseoData) {
     ];
     
     const boxWidth = 280;
-    const boxHeight = 160;
+    const boxHeight = 140;
     const gap = 20;
     const totalWidth = (boxWidth * 3) + (gap * 2);
     const startX = (canvas.width - totalWidth) / 2;
@@ -4978,31 +5040,52 @@ async function compartirPaseo(paseoData) {
       const x = startX + (boxWidth + gap) * i;
       const y = yContent;
       
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      roundRect(ctx, x, y, boxWidth, boxHeight, 20);
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      roundRect(ctx, x, y, boxWidth, boxHeight, 18);
       ctx.fill();
       
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 56px system-ui';
+      ctx.font = 'bold 50px system-ui';
       ctx.textAlign = 'center';
-      ctx.fillText(String(s.valor), x + boxWidth / 2, y + 80);
+      ctx.fillText(String(s.valor), x + boxWidth / 2, y + 68);
       
-      ctx.font = 'bold 22px system-ui';
+      ctx.font = 'bold 20px system-ui';
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText(s.label, x + boxWidth / 2, y + 125);
+      ctx.fillText(s.label, x + boxWidth / 2, y + 108);
     });
     
-    yContent += boxHeight + 60;
+    yContent += boxHeight + 50;
     
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 32px system-ui';
+    // ==============================================
+    // CALL TO ACTION (nuevo - importante)
+    // ==============================================
     ctx.textAlign = 'center';
-    ctx.fillText('🏔️ Santa Marta, Colombia', canvas.width / 2, canvas.height - 120);
-    
+    ctx.fillStyle = '#fff';
     ctx.font = 'bold 26px system-ui';
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('huellavivaapp.com', canvas.width / 2, canvas.height - 75);
+    ctx.fillText('🐾 Pasea con tu mascota', canvas.width / 2, yContent);
+    ctx.fillText('y ayuda a encontrar mascotas perdidas', canvas.width / 2, yContent + 35);
+    yContent += 75;
     
+    // Descarga HuellaViva
+    ctx.fillStyle = '#FBBF24';
+    ctx.font = 'bold 32px system-ui';
+    ctx.fillText('Descarga HuellaViva', canvas.width / 2, yContent);
+    yContent += 40;
+    
+    // Frase inspiradora
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = 'italic 22px system-ui';
+    ctx.fillText('✨ Cada paseo cuenta ✨', canvas.width / 2, yContent);
+    
+    // ==============================================
+    // FOOTER
+    // ==============================================
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = 'bold 24px system-ui';
+    ctx.fillText('huellavivaapp.com', canvas.width / 2, canvas.height - 40);
+    
+    // Convertir y compartir
     canvas.toBlob(async (blob) => {
       loader.remove();
       
@@ -5014,7 +5097,7 @@ async function compartirPaseo(paseoData) {
           await navigator.share({
             files: [file],
             title: '🐾 Mi paseo con HuellaViva',
-            text: `${mascota ? mascota.nombre + ' y yo' : 'Hoy'} caminamos ${paseo.distancia.toFixed(2)} km con HuellaViva 🐾 huellavivaapp.com`
+            text: `${mascota ? mascota.nombre + ' y yo' : 'Hoy'} caminamos ${paseo.distancia.toFixed(2)} km 🐾\n\nPasea con tu mascota y ayuda a encontrar mascotas perdidas.\nDescarga HuellaViva: huellavivaapp.com\n\n✨ Cada paseo cuenta ✨`
           });
           return;
         } catch(e) {

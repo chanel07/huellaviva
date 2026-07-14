@@ -4463,9 +4463,18 @@ function mostrarToastPaseo(mensaje) {
 
 // Calcular ritmo (min/km) actual
 function calcularRitmo() {
-  if (paseoDistancia < 0.01) return null;
+  // Solo calcular ritmo si la distancia es SUFICIENTE (>100m)
+  // Con menos distancia el cálculo es poco confiable
+  if (paseoDistancia < 0.1) return null;
+  
   const minutos = (Date.now() - paseoInicio) / 60000;
   const ritmo = minutos / paseoDistancia; // minutos por km
+  
+  // Limitar a rangos REALISTAS de caminata/carrera
+  // Ritmo mínimo: 3 min/km (carrera muy rápida)
+  // Ritmo máximo: 25 min/km (paso muy lento pero real)
+  if (ritmo < 3 || ritmo > 25) return null;
+  
   return ritmo;
 }
 
@@ -5334,9 +5343,13 @@ function onPaseoPosicion(pos) {
   
   // Actualizar velocidad (km/h)
   const velEl = document.getElementById('paseo-velocidad');
-  if (velEl && ritmo) {
-    const velocidad = 60 / ritmo; // km/h
-    velEl.textContent = velocidad.toFixed(1);
+  if (velEl) {
+    if (ritmo) {
+      const velocidad = 60 / ritmo; // km/h
+      velEl.textContent = velocidad.toFixed(1);
+    } else {
+      velEl.textContent = '0';
+    }
   }
   
   // Actualizar progreso del objetivo
@@ -5425,15 +5438,10 @@ function iniciarContadorPasos() {
 
 // Actualizar UI de pasos (usando el máximo entre acelerómetro y estimación por distancia)
 function actualizarPasosUI() {
-  // Los humanos dan ~1300 pasos por km caminando
-  const pasosEstimadosPorDistancia = Math.round(paseoDistancia * 1300);
-  const pasosMostrados = Math.max(paseoPasos, pasosEstimadosPorDistancia);
+  // Solo mostrar pasos REALES del acelerómetro (no forzar por distancia)
+  // Esto evita que suban falsamente si hay drift GPS
   const el = document.getElementById('paseo-pasos');
-  if (el) el.textContent = pasosMostrados.toLocaleString();
-  // Actualizar paseoPasos para que sea el mostrado
-  if (pasosEstimadosPorDistancia > paseoPasos) {
-    paseoPasos = pasosEstimadosPorDistancia;
-  }
+  if (el) el.textContent = paseoPasos.toLocaleString();
 }
 
 // Calcular distancia entre 2 puntos GPS (Haversine)

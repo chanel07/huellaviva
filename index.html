@@ -5411,7 +5411,7 @@ function actualizarTiempoPaseo() {
 }
 
 // Contador de pasos usando acelerómetro
-let pasosAcelerometro = { lastMag: 0, threshold: 10.5, lastStep: 0, historial: [] };
+let pasosAcelerometro = { lastMag: 0, threshold: 9.5, lastStep: 0, historial: [] };
 function iniciarContadorPasos() {
   if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', function(e) {
@@ -5422,11 +5422,11 @@ function iniciarContadorPasos() {
       const diff = Math.abs(mag - pasosAcelerometro.lastMag);
       const ahora = Date.now();
       
-      // Filtros más permisivos:
-      // 1. Cambio pequeño (>2)
-      // 2. Magnitud >10.5
-      // 3. Tiempo mínimo 250ms entre pasos
-      if (diff > 2 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 250) {
+      // Filtros MÁS sensibles para detectar más pasos:
+      // 1. Cambio pequeño (>1.5)
+      // 2. Magnitud >9.5 (más permisivo)
+      // 3. Tiempo mínimo 200ms entre pasos
+      if (diff > 1.5 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 200) {
         paseoPasos++;
         pasosAcelerometro.lastStep = ahora;
         actualizarPasosUI();
@@ -5436,12 +5436,22 @@ function iniciarContadorPasos() {
   }
 }
 
-// Actualizar UI de pasos (usando el máximo entre acelerómetro y estimación por distancia)
+// Actualizar UI de pasos - HÍBRIDO INTELIGENTE
 function actualizarPasosUI() {
-  // Solo mostrar pasos REALES del acelerómetro (no forzar por distancia)
-  // Esto evita que suban falsamente si hay drift GPS
+  // Estimación por distancia (backup si acelerómetro falla)
+  const pasosEstimadosPorDistancia = Math.round(paseoDistancia * 1300);
+  
+  // Aplicar backup si:
+  // - Distancia significativa (>30m)
+  // - Y acelerómetro detectó menos del 40% de lo esperado
+  let pasosMostrados = paseoPasos;
+  if (paseoDistancia > 0.03 && paseoPasos < pasosEstimadosPorDistancia * 0.4) {
+    pasosMostrados = pasosEstimadosPorDistancia;
+    paseoPasos = pasosEstimadosPorDistancia;
+  }
+  
   const el = document.getElementById('paseo-pasos');
-  if (el) el.textContent = paseoPasos.toLocaleString();
+  if (el) el.textContent = pasosMostrados.toLocaleString();
 }
 
 // Calcular distancia entre 2 puntos GPS (Haversine)

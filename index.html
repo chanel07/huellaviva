@@ -5279,13 +5279,12 @@ function inicializarMapaPaseo() {
 function onPaseoPosicion(pos) {
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
-  const accuracy = pos.coords.accuracy || 999; // Precisión en metros
+  const accuracy = pos.coords.accuracy || 999;
   const nuevaPos = { lat, lng, ts: Date.now(), accuracy };
   
-  // FILTRO 1: Descartar puntos con GPS MUY malo (>50m de error)
-  // Balance: no tan estricto para no descartar todo
-  if (accuracy > 50) {
-    console.log('🛰️ GPS muy impreciso, ignorado:', accuracy + 'm');
+  // FILTRO 1: Solo descartar GPS realmente pésimo (>100m error)
+  if (accuracy > 100) {
+    console.log('🛰️ GPS pésimo:', accuracy + 'm');
     return;
   }
   
@@ -5293,36 +5292,25 @@ function onPaseoPosicion(pos) {
   if (paseoUltimaPos) {
     const dist = calcularDistancia(paseoUltimaPos.lat, paseoUltimaPos.lng, lat, lng);
     const tiempoTranscurridoSeg = (nuevaPos.ts - paseoUltimaPos.ts) / 1000;
+    const velocidadKmH = tiempoTranscurridoSeg > 0.1 ? (dist * 1000) / tiempoTranscurridoSeg * 3.6 : 0;
     
-    // Solo aplicar filtros si tiempo es razonable (>0.5 seg)
-    if (tiempoTranscurridoSeg > 0.5) {
-      const velocidadMetrosSeg = (dist * 1000) / tiempoTranscurridoSeg;
-      const velocidadKmH = velocidadMetrosSeg * 3.6;
-      
-      // FILTRO 2: Ignorar si distancia es MUY pequeña (<5 metros)
-      // 5 metros en cualquier tiempo = probablemente drift
-      if (dist * 1000 < 5) {
-        console.log('🚶 Movimiento muy pequeño (<5m) - drift ignorado');
-        paseoUltimaPos = nuevaPos; // Actualiza pos pero no suma
-        return;
-      }
-      
-      // FILTRO 3: Ignorar saltos irreales (>25 km/h caminando/corriendo)
-      if (velocidadKmH > 25) {
-        console.log('🚀 Salto GPS irreal (', velocidadKmH.toFixed(1), 'km/h) - ignorado');
-        paseoUltimaPos = nuevaPos;
-        return;
-      }
-      
-      // FILTRO 4: Ignorar si distancia es enorme (>100m entre puntos = raro)
-      if (dist > 0.1) {
-        console.log('🚀 Salto de distancia grande:', dist.toFixed(3), 'km - ignorado');
-        paseoUltimaPos = nuevaPos;
-        return;
-      }
+    // FILTRO 2: Solo descartar saltos IRREALES (>40 km/h)
+    // Nadie camina/corre a más de 40 km/h con un perro
+    if (velocidadKmH > 40) {
+      console.log('🚀 Salto GPS irreal:', velocidadKmH.toFixed(1), 'km/h - ignorado');
+      paseoUltimaPos = nuevaPos;
+      return;
     }
     
-    // Sumar distancia si pasa filtros
+    // FILTRO 3: Solo descartar saltos de MÁS de 200 metros entre puntos
+    // (probablemente teletransportado por GPS)
+    if (dist > 0.2) {
+      console.log('🚀 Salto de distancia enorme:', dist.toFixed(3), 'km - ignorado');
+      paseoUltimaPos = nuevaPos;
+      return;
+    }
+    
+    // Aceptar todo lo demás como distancia real
     paseoDistancia += dist;
   }
   
@@ -5410,7 +5398,7 @@ function actualizarTiempoPaseo() {
 }
 
 // Contador de pasos usando acelerómetro
-let pasosAcelerometro = { lastMag: 0, threshold: 11, lastStep: 0, historial: [] };
+let pasosAcelerometro = { lastMag: 0, threshold: 10.5, lastStep: 0, historial: [] };
 function iniciarContadorPasos() {
   if (window.DeviceMotionEvent) {
     window.addEventListener('devicemotion', function(e) {
@@ -5421,11 +5409,11 @@ function iniciarContadorPasos() {
       const diff = Math.abs(mag - pasosAcelerometro.lastMag);
       const ahora = Date.now();
       
-      // Filtros balanceados:
-      // 1. Cambio moderado (>2.5)
-      // 2. Magnitud >11 (movimiento definido)
-      // 3. Tiempo mínimo 300ms entre pasos
-      if (diff > 2.5 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 300) {
+      // Filtros más permisivos:
+      // 1. Cambio pequeño (>2)
+      // 2. Magnitud >10.5
+      // 3. Tiempo mínimo 250ms entre pasos
+      if (diff > 2 && mag > pasosAcelerometro.threshold && (ahora - pasosAcelerometro.lastStep) > 250) {
         paseoPasos++;
         pasosAcelerometro.lastStep = ahora;
         actualizarPasosUI();

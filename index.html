@@ -5992,10 +5992,56 @@ function mostrarAlertaPerdidoCercano(perro, distanciaMetros) {
   // Voz mejorada - más clara sobre que es un REPORTE previo
   hablar('Atención. Se reportó un perro perdido a ' + Math.round(distanciaMetros) + ' metros de tu ubicación. ' + (perro.nombre || 'Un perro') + ', ' + (perro.raza || 'raza mixta') + '. Estate atento por si lo ves.');
   
-  // Auto-cerrar después de 20 segundos si no se interactúa
+  // Después de 20 segundos: convertir en badge pequeño (no desaparece)
   setTimeout(() => {
-    if (modal.parentNode) modal.remove();
+    if (modal.parentNode) {
+      // Reemplazar alerta grande con badge pequeño
+      modal.remove();
+      mostrarBadgePerdido(perro, distanciaMetros);
+    }
   }, 20000);
+}
+
+// BADGE pequeño flotante - persiste hasta que usuario cierre o termine paseo
+function mostrarBadgePerdido(perro, distanciaMetros) {
+  // Si ya existe badge, no duplicar
+  if (document.getElementById('badge-perdido-flotante')) return;
+  
+  const distanciaTexto = distanciaMetros < 100 
+    ? Math.round(distanciaMetros) + 'm'
+    : Math.round(distanciaMetros / 10) * 10 + 'm';
+  
+  const badge = document.createElement('div');
+  badge.id = 'badge-perdido-flotante';
+  badge.className = 'huellaviva-modal alerta-perdido-cercano';
+  badge.style.cssText = 'position:fixed;top:16px;right:12px;background:linear-gradient(135deg,#DC2626,#991B1B);border-radius:14px;padding:8px 12px;z-index:100002;box-shadow:0 4px 20px rgba(220,38,38,0.5);animation:fadeInUp 0.3s ease;border:2px solid #FBBF24;cursor:pointer;display:flex;align-items:center;gap:8px;';
+  
+  badge.innerHTML = `
+    <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">
+      ${perro.foto_url 
+        ? `<img src="${perro.foto_url}" style="width:100%;height:100%;object-fit:cover;"/>`
+        : `<span style="font-size:20px;">🐕</span>`
+      }
+    </div>
+    <div style="color:#fff;font-size:11px;font-weight:800;line-height:1.2;">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="animation:pulse 1.5s infinite;">🚨</span>
+        <span>${perro.nombre || 'Perro'} · ${distanciaTexto}</span>
+      </div>
+      <div style="font-size:9px;opacity:0.85;font-weight:600;">Toca para ver</div>
+    </div>
+    <button onclick="event.stopPropagation(); document.getElementById('badge-perdido-flotante').remove();" style="background:rgba(0,0,0,0.3);border:none;color:#fff;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:800;cursor:pointer;padding:0;flex-shrink:0;">✕</button>
+  `;
+  
+  // Al tocar el badge → volver a mostrar alerta completa
+  badge.onclick = () => {
+    badge.remove();
+    // Remover del set para que vuelva a mostrarse
+    paseoAlertasActivas.delete(perro.id);
+    mostrarAlertaPerdidoCercano(perro, distanciaMetros);
+  };
+  
+  document.body.appendChild(badge);
 }
 
 function verDetallePerdidoPaseo(id) {
@@ -6118,6 +6164,10 @@ function finalizarPaseo() {
   if (!confirm('¿Terminar el paseo?')) return;
   
   paseoActivo = false;
+  
+  // Limpiar badge de alerta si existe
+  const badge = document.getElementById('badge-perdido-flotante');
+  if (badge) badge.remove();
   
   // Detener GPS
   if (paseoWatchId !== null) {

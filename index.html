@@ -1288,6 +1288,20 @@ function manejarBotonAtras(e) {
     return;
   }
   
+  // PRIORIDAD 3.5: Si estamos en screen distinta de inicio, volver a inicio
+  const screenActiva = document.querySelector('.screen.active');
+  if (screenActiva && screenActiva.id !== 'screen-inicio') {
+    console.log('🔙 En screen no-inicio, volviendo a inicio');
+    isNavigatingBack = true;
+    navStack = ['inicio'];
+    showTab('inicio', true);
+    isNavigatingBack = false;
+    try {
+      history.pushState({ screen: 'inicio', ts: Date.now() }, '', '#inicio');
+    } catch(err) {}
+    return;
+  }
+  
   // PRIORIDAD 4: Estamos en raíz, confirmar salir
   console.log('🔙 En raíz, mostrar toast');
   

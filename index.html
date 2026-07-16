@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -4163,25 +4164,46 @@ function hablar(texto) {
   if (!voiceEnabled) return;
   if (!('speechSynthesis' in window)) return;
   
-  try {
-    // Detener cualquier voz activa
-    window.speechSynthesis.cancel();
-    
-    const utter = new SpeechSynthesisUtterance(texto);
-    utter.lang = 'es-CO'; // Español Colombia
-    utter.rate = 1.0;      // Velocidad normal
-    utter.pitch = 1.0;     // Tono normal
-    utter.volume = 1.0;    // Volumen completo
-    
-    // Intentar usar voz en español si está disponible
-    const voces = window.speechSynthesis.getVoices();
-    const vozEspanol = voces.find(v => v.lang.startsWith('es'));
-    if (vozEspanol) utter.voice = vozEspanol;
-    
-    window.speechSynthesis.speak(utter);
-  } catch(e) {
-    console.warn('Error al hablar:', e);
+  const decir = () => {
+    try {
+      // Detener cualquier voz activa
+      window.speechSynthesis.cancel();
+      
+      const utter = new SpeechSynthesisUtterance(texto);
+      utter.lang = 'es-CO'; // Español Colombia
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.volume = 1.0;
+      
+      // Intentar usar voz en español si está disponible
+      const voces = window.speechSynthesis.getVoices();
+      const vozEspanol = voces.find(v => v.lang.startsWith('es'));
+      if (vozEspanol) utter.voice = vozEspanol;
+      
+      window.speechSynthesis.speak(utter);
+    } catch(e) {
+      console.warn('Error al hablar:', e);
+    }
+  };
+  
+  // Si las voces aún no están cargadas, esperar
+  const voces = window.speechSynthesis.getVoices();
+  if (voces.length === 0) {
+    // Esperar a que se carguen (máximo 1 segundo)
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      decir();
+    };
+    // Fallback: intentar de todos modos después de 500ms
+    setTimeout(decir, 500);
+  } else {
+    decir();
   }
+}
+
+// Cargar voces al inicio (importante para Android)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
 }
 
 function toggleVoz() {
@@ -4254,6 +4276,16 @@ function getFactorEdad(edad) {
 
 // MOSTRAR SELECTOR DE OBJETIVO antes de iniciar
 function mostrarSelectorObjetivo() {
+  // Precargar voz para que esté lista al iniciar el paseo
+  if (voiceEnabled && 'speechSynthesis' in window) {
+    try {
+      // Warm-up: reproducir algo muy corto silencioso
+      const warmup = new SpeechSynthesisUtterance(' ');
+      warmup.volume = 0.01; // Casi inaudible
+      warmup.rate = 10;      // Muy rápido
+      window.speechSynthesis.speak(warmup);
+    } catch(e) {}
+  }
   const mascotas = getMisMascotas ? getMisMascotas() : [];
   
   const m = document.createElement('div');
@@ -5526,6 +5558,9 @@ function iniciarPaseo() {
   paseoUltimaPos = null;
   paseoUltimoKmAvisado = 0;
   paseoAguaAvisada = false;
+  paseoAlertasActivas = new Set();
+  paseoPerdidosCercanos = [];
+  paseoUltimoCheckPerdidos = 0;
   if (paseoMascota) paseoMascota._alertadoCansancio = false;
   
   // Crear pantalla de paseo activo
@@ -5691,12 +5726,12 @@ function iniciarPaseo() {
   
   paseoActivo = true;
   
-  // Aviso por voz al iniciar
+  // Aviso por voz al iniciar (delay mayor para asegurar que la voz esté lista)
   setTimeout(() => {
     const nombrePerro = paseoMascota && paseoMascota.nombre ? ' con ' + paseoMascota.nombre : '';
     const objetivoTexto = paseoObjetivo ? ' Tu objetivo es ' + paseoObjetivo.label + '.' : '';
     hablar('Comenzando paseo' + nombrePerro + '.' + objetivoTexto + ' ¡Buena suerte!');
-  }, 500);
+  }, 1500);
 }
 
 // Inicializar mapa del paseo
@@ -5906,7 +5941,8 @@ function agregarHuellita(lat, lng) {
   }
 }
 
-async function verificarPerdidosCercanos(lat, lng) {  try {
+async function verificarPerdidosCercanos(lat, lng) {
+  try {
     // Buscar reportes de perros perdidos activos
     if (!window._rep || Object.keys(window._rep).length === 0) return;
     
@@ -5922,7 +5958,24 @@ async function verificarPerdidosCercanos(lat, lng) {  try {
       const dist = calcularDistancia(lat, lng, parseFloat(perro.latitud), parseFloat(perro.longitud));
       const distanciaMetros = dist * 1000;
       
-      // Solo alertar si está a menos de 500 metros
+      // Registrar TODOS los que estuvieron a <500m durante el paseo
+      // (para mostrar en el resumen final)
+      if (distanciaMetros <= 500) {
+        const yaRegistrado = paseoPerdidosCercanos.find(p => p.id === perro.id);
+        if (!yaRegistrado) {
+          paseoPerdidosCercanos.push({
+            id: perro.id,
+            nombre: perro.nombre,
+            raza: perro.raza,
+            distanciaMinima: distanciaMetros
+          });
+        } else if (distanciaMetros < yaRegistrado.distanciaMinima) {
+          // Actualizar con distancia más corta
+          yaRegistrado.distanciaMinima = distanciaMetros;
+        }
+      }
+      
+      // Solo alertar visualmente si es la primera vez
       if (distanciaMetros <= 500 && !paseoAlertasActivas.has(perro.id)) {
         paseoAlertasActivas.add(perro.id);
         mostrarAlertaPerdidoCercano(perro, distanciaMetros);
@@ -6145,6 +6198,25 @@ function actualizarPasosUI() {
   
   const el = document.getElementById('paseo-pasos');
   if (el) el.textContent = pasosMostrados.toLocaleString();
+  
+  // ⚡ FALLBACK CRÍTICO: Si tienes pasos pero NO distancia (GPS falló)
+  // Estimar distancia desde los pasos
+  if (paseoPasos > 100 && paseoDistancia < 0.05) {
+    // 1300 pasos = 1 km, entonces cada paso = 0.00077 km
+    const distanciaEstimada = paseoPasos / 1300;
+    paseoDistancia = distanciaEstimada;
+    
+    // Actualizar UI de distancia
+    const distEl = document.getElementById('paseo-distancia');
+    if (distEl) distEl.textContent = paseoDistancia.toFixed(2);
+    
+    // Actualizar calorías
+    const calEl = document.getElementById('paseo-calorias');
+    if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
+    
+    // Actualizar datos del perro
+    actualizarDatosPerro();
+  }
 }
 
 // Calcular distancia entre 2 puntos GPS (Haversine)
@@ -6192,6 +6264,7 @@ function finalizarPaseo() {
     pasos: paseoPasos,
     calorias: calorias,
     ruta: paseoRuta,
+    perdidosCercanos: [...paseoPerdidosCercanos],
     mascota: paseoMascota ? { 
       nombre: paseoMascota.nombre, 
       raza: paseoMascota.raza, 
@@ -6215,6 +6288,103 @@ function finalizarPaseo() {
   
   // Mostrar resumen
   mostrarResumenPaseo(paseo);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SECCIÓN DE MISIÓN - Refuerza narrativa de rescate
+// ═══════════════════════════════════════════════════════════
+function generarSeccionMision(paseo) {
+  const distancia = paseo.distancia;
+  const distanciaTexto = distancia >= 1 
+    ? distancia.toFixed(2) + ' km' 
+    : Math.round(distancia * 1000) + ' metros';
+  
+  // Frase principal SIEMPRE presente
+  const fraseVigilancia = `🐾 Hoy ayudaste a vigilar <strong>${distanciaTexto}</strong> de Santa Marta.`;
+  
+  // Frases motivacionales rotativas (según situación)
+  const hora = new Date().getHours();
+  const historial = obtenerHistorialPaseos();
+  const totalPaseos = historial.length;
+  const paseosEstaSemana = historial.filter(p => {
+    const fecha = new Date(p.fecha);
+    const inicioSemana = new Date();
+    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
+    inicioSemana.setHours(0, 0, 0, 0);
+    return fecha >= inicioSemana;
+  }).length;
+  
+  let mensajeContextual = '';
+  
+  if (totalPaseos === 1) {
+    mensajeContextual = '¡Bienvenido a la comunidad! Cada paso tuyo puede salvar una vida.';
+  } else if (hora >= 20 || hora < 6) {
+    mensajeContextual = 'Gracias por ser los ojos de la noche. Muchos perdidos aparecen en la madrugada.';
+  } else if (new Date().getDay() === 0) {
+    mensajeContextual = 'Domingos en familia con tu perro. Y ayudando a otras familias reunirse.';
+  } else if (paseosEstaSemana >= 5) {
+    mensajeContextual = 'Esta semana caminaste con propósito. Tu vecindario es más seguro para las mascotas.';
+  } else if (totalPaseos >= 10 && totalPaseos < 25) {
+    mensajeContextual = 'Ya eres un guardián samario. Cada paseo cuenta para la comunidad.';
+  } else if (totalPaseos >= 25) {
+    mensajeContextual = 'Eres un HÉROE silencioso. Tu constancia cambia vidas peludas.';
+  } else {
+    mensajeContextual = 'Gracias por ser parte de HuellaViva 💚';
+  }
+  
+  // Sección de reportes cercanos (si aplica)
+  let seccionReportes = '';
+  if (paseo.perdidosCercanos && paseo.perdidosCercanos.length > 0) {
+    const cantidad = paseo.perdidosCercanos.length;
+    
+    // Encontrar distancia más corta
+    const distanciaMinima = Math.min(...paseo.perdidosCercanos.map(p => p.distanciaMinima));
+    const distanciaMinTexto = distanciaMinima < 100 
+      ? Math.round(distanciaMinima) + ' metros'
+      : Math.round(distanciaMinima / 10) * 10 + ' metros';
+    
+    if (cantidad === 1) {
+      seccionReportes = `
+        <div style="background:rgba(0,0,0,0.25);border-radius:12px;padding:14px;margin-top:12px;border-left:4px solid #FBBF24;">
+          <div style="font-size:22px;margin-bottom:6px;">🚨</div>
+          <div style="font-size:12px;font-weight:600;line-height:1.5;">
+            Durante tu paseo estuviste a <strong>${distanciaMinTexto}</strong> de una mascota reportada como perdida.
+          </div>
+          <div style="font-size:11px;font-weight:600;margin-top:8px;color:#FDE68A;">
+            Gracias por ayudar a ampliar la búsqueda 🐾
+          </div>
+        </div>
+      `;
+    } else {
+      seccionReportes = `
+        <div style="background:rgba(0,0,0,0.25);border-radius:12px;padding:14px;margin-top:12px;border-left:4px solid #FBBF24;">
+          <div style="font-size:22px;margin-bottom:6px;">🚨</div>
+          <div style="font-size:12px;font-weight:600;line-height:1.5;">
+            Durante tu paseo estuviste cerca de <strong>${cantidad} mascotas</strong> reportadas como perdidas.
+          </div>
+          <div style="font-size:11px;font-weight:600;margin-top:8px;color:#FDE68A;">
+            Gracias por ampliar la búsqueda de la comunidad 🐾
+          </div>
+        </div>
+      `;
+    }
+  }
+  
+  return `
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.4),rgba(5,150,105,0.4));border:2px solid rgba(16,185,129,0.6);border-radius:20px;padding:20px;margin-bottom:20px;backdrop-filter:blur(10px);">
+      <div style="font-size:11px;opacity:0.9;font-weight:700;letter-spacing:1px;margin-bottom:10px;text-align:left;">💚 IMPACTO DE HOY</div>
+      
+      <div style="font-size:15px;font-weight:600;line-height:1.6;margin-bottom:10px;">
+        ${fraseVigilancia}
+      </div>
+      
+      <div style="font-size:13px;font-weight:600;line-height:1.5;opacity:0.95;font-style:italic;">
+        ${mensajeContextual}
+      </div>
+      
+      ${seccionReportes}
+    </div>
+  `;
 }
 
 // Mostrar resumen al finalizar
@@ -6308,6 +6478,8 @@ function mostrarResumenPaseo(paseo) {
       ${seccionPerro}
       
       ${seccionMapa}
+      
+      ${generarSeccionMision(paseo)}
       
       ${nuevoLogro ? `
       <div style="background:#fff;color:#DC2626;border-radius:16px;padding:16px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:fadeInUp 0.6s ease both;">

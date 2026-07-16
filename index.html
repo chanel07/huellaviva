@@ -1154,168 +1154,83 @@ function abrirZoomFoto(url, nombre) {
   });
 }
 
-// FUNCIÓN PRINCIPAL DE MANEJO DE ATRÁS
+// FUNCIÓN PRINCIPAL DE MANEJO DE ATRÁS - VERSIÓN SIMPLIFICADA Y ROBUSTA
 function manejarBotonAtras(e) {
-  console.log('🔙 popstate event fired. navStack:', JSON.stringify(navStack));
+  console.log('🔙 Botón atrás activado');
   
   // ═══════════════════════════════════════════════════════
-  // EXCLUSIONES - IDs que NO son modales
+  // PRIORIDAD 1: Cerrar cualquier modal abierto
   // ═══════════════════════════════════════════════════════
-  const EXCLUIR_IDS = [
-    'onboarding',     // Pantalla de bienvenida
-    'app',            // Contenedor principal
-    'app-root',       // Contenedor principal
-    'main',           // Contenedor principal
-    'ar-overlay',     // Pantalla AR (tiene su propio botón)
-    'ar-screen',      // Pantalla AR
-    'radar-screen',   // Pantalla Radar
-    'radar-overlay',  // Pantalla Radar
-    'splash',         // Splash screen
-    'splash-screen'   // Splash screen
-  ];
-  
-  function esModalValido(el) {
-    if (!el || !el.id) return true;
-    if (EXCLUIR_IDS.includes(el.id)) return false;
-    if (el.classList && el.classList.contains('screen')) return false;
-    if (el.id.startsWith('screen-')) return false;
-    if (el.id.startsWith('ar-')) return false;
-    if (el.id.startsWith('radar-')) return false;
-    return true;
-  }
-  
-  // ═══════════════════════════════════════════════════════
-  // BÚSQUEDA AGRESIVA DE MODALES
-  // ═══════════════════════════════════════════════════════
-  
-  // Lista de selectores que SEGURO son modales:
-  const selectoresModales = [
-    '.huellaviva-modal',
-    '.zoom-modal-fullscreen', 
-    '.match-modal-bg'
-  ];
-  
-  let modalEncontrado = null;
-  
-  // 1. Buscar por clases conocidas
-  for (const selector of selectoresModales) {
-    const elementos = document.querySelectorAll(selector);
-    if (elementos.length > 0) {
-      // Tomar el último (más reciente) que sea válido
-      for (let i = elementos.length - 1; i >= 0; i--) {
-        if (esModalValido(elementos[i])) {
-          modalEncontrado = elementos[i];
-          console.log('🔙 Modal encontrado por clase:', selector);
-          break;
-        }
-      }
-      if (modalEncontrado) break;
-    }
-  }
-  
-  // 2. Si no encontró por clase, buscar por estilo
-  if (!modalEncontrado) {
-    const todosDivs = document.body.children;
-    for (let i = todosDivs.length - 1; i >= 0; i--) {
-      const div = todosDivs[i];
-      
-      // Aplicar exclusiones
-      if (!esModalValido(div)) continue;
-      if (div.tagName !== 'DIV') continue;
-      
-      // Verificar si parece un modal
-      const cs = window.getComputedStyle(div);
-      const isFixed = cs.position === 'fixed';
-      const zIndex = parseInt(cs.zIndex) || 0;
-      const isVisible = cs.display !== 'none' && cs.visibility !== 'hidden';
-      
-      if (isFixed && zIndex >= 1000 && isVisible) {
-        modalEncontrado = div;
-        console.log('🔙 Modal encontrado por computed style. z-index:', zIndex);
-        break;
-      }
-    }
-  }
-  
-  // 3. Si encontró modal, cerrarlo
-  if (modalEncontrado) {
-    console.log('🔙 Cerrando modal:', modalEncontrado.className || modalEncontrado.id || 'sin id');
-    modalEncontrado.remove();
-    // Reagregar al historial
-    const actual = navStack[navStack.length - 1] || 'inicio';
+  const modalesConClase = document.querySelectorAll('.huellaviva-modal, .zoom-modal-fullscreen, .match-modal-bg, .alerta-perdido-cercano');
+  if (modalesConClase.length > 0) {
+    const ultimo = modalesConClase[modalesConClase.length - 1];
+    console.log('🔙 Cerrando modal:', ultimo.className);
+    ultimo.remove();
+    // Reagregar entrada al historial para futuras navegaciones
     try {
-      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
-    } catch(err) {
-      console.warn('Error pushState:', err);
-    }
+      history.pushState({ screen: 'modal-cerrado', ts: Date.now() }, '', '#modal');
+    } catch(err) {}
     return;
   }
   
-  console.log('🔙 NO se encontraron modales');
-  
-  // PRIORIDAD 2: Cerrar AR/Radar
+  // ═══════════════════════════════════════════════════════
+  // PRIORIDAD 2: Cerrar AR o Radar
+  // ═══════════════════════════════════════════════════════
   const arScreen = document.getElementById('ar-screen');
   const radarScreen = document.getElementById('radar-screen');
   
   if (arScreen && arScreen.style.display !== 'none' && arScreen.offsetParent !== null) {
     console.log('🔙 Cerrando AR');
     if (typeof cerrarAR === 'function') cerrarAR();
-    const actual = navStack[navStack.length - 1] || 'inicio';
-    try {
-      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
-    } catch(err) {}
+    try { history.pushState({ ts: Date.now() }, '', '#inicio'); } catch(err) {}
     return;
   }
   
   if (radarScreen && radarScreen.style.display !== 'none' && radarScreen.offsetParent !== null) {
     console.log('🔙 Cerrando Radar');
     if (typeof cerrarRadar === 'function') cerrarRadar();
-    const actual = navStack[navStack.length - 1] || 'inicio';
-    try {
-      history.pushState({ screen: actual, ts: Date.now() }, '', '#' + actual);
-    } catch(err) {}
+    try { history.pushState({ ts: Date.now() }, '', '#inicio'); } catch(err) {}
     return;
   }
   
-  // PRIORIDAD 3: Volver a pantalla anterior
-  if (navStack.length > 1) {
-    console.log('🔙 Volviendo a pantalla anterior');
-    navStack.pop();
-    const pantallaAnterior = navStack[navStack.length - 1];
-    isNavigatingBack = true;
-    showTab(pantallaAnterior, true);
-    isNavigatingBack = false;
-    return;
-  }
-  
-  // PRIORIDAD 3.5: Si estamos en screen distinta de inicio, volver a inicio
+  // ═══════════════════════════════════════════════════════
+  // PRIORIDAD 3: Determinar dónde estamos
+  // ═══════════════════════════════════════════════════════
   const screenActiva = document.querySelector('.screen.active');
-  if (screenActiva && screenActiva.id !== 'screen-inicio') {
-    console.log('🔙 En screen no-inicio, volviendo a inicio');
+  const idScreen = screenActiva ? screenActiva.id : '';
+  const nombreScreen = idScreen.replace('screen-', '');
+  
+  console.log('🔙 Screen activa:', nombreScreen);
+  
+  // Si estamos en cualquier screen distinta a inicio → volver a inicio
+  if (nombreScreen && nombreScreen !== 'inicio') {
+    console.log('🔙 Volviendo a inicio desde:', nombreScreen);
     isNavigatingBack = true;
     navStack = ['inicio'];
     showTab('inicio', true);
     isNavigatingBack = false;
+    // Reagregar historial
     try {
       history.pushState({ screen: 'inicio', ts: Date.now() }, '', '#inicio');
     } catch(err) {}
     return;
   }
   
-  // PRIORIDAD 4: Estamos en raíz, confirmar salir
-  console.log('🔙 En raíz, mostrar toast');
+  // ═══════════════════════════════════════════════════════
+  // PRIORIDAD 4: Estamos en Inicio - Confirmar salir
+  // ═══════════════════════════════════════════════════════
+  console.log('🔙 En inicio, mostrar toast');
   
   // Toast manual
+  document.querySelectorAll('.huellaviva-toast-exit').forEach(old => old.remove());
   const t = document.createElement('div');
   t.className = 'huellaviva-toast-exit';
   t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:12px 20px;border-radius:24px;z-index:99999;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
   t.textContent = 'Toca atrás de nuevo para salir';
-  // Remover toasts viejos
-  document.querySelectorAll('.huellaviva-toast-exit').forEach(old => old.remove());
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2000);
   
-  // Si tocan atrás 2 veces rápido (menos de 2 seg), permitir cerrar
+  // Si tocan atrás 2 veces rápido, permitir cerrar
   if (window.__lastBackPress && (Date.now() - window.__lastBackPress) < 2000) {
     console.log('🔙 Cerrando app');
     window.__lastBackPress = 0;

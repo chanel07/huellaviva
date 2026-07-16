@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -6233,7 +6232,50 @@ function calcularDistancia(lat1, lng1, lat2, lng2) {
 
 // Finalizar paseo
 function finalizarPaseo() {
-  if (!confirm('¿Terminar el paseo?')) return;
+  // Calcular duración real en segundos
+  const duracionSegundos = Math.floor((Date.now() - paseoInicio) / 1000);
+  const metrosCaminados = paseoDistancia * 1000;
+  
+  // Si el paseo fue MUY corto (menos de 60 seg o menos de 30 metros)
+  // Preguntar si quiere descartarlo
+  if (duracionSegundos < 60 || metrosCaminados < 30) {
+    const mensaje = duracionSegundos < 60 
+      ? `El paseo dur\u00f3 solo ${duracionSegundos} segundos.\n\n\u00bfSeguro que quieres finalizarlo?\n\n\u26a0\ufe0f Los paseos muy cortos no se guardan.`
+      : `Solo caminaste ${Math.round(metrosCaminados)} metros.\n\n\u00bfSeguro que quieres finalizarlo?\n\n\u26a0\ufe0f Los paseos muy cortos no se guardan.`;
+    
+    if (!confirm(mensaje)) return;
+    
+    // Descartar sin guardar
+    paseoActivo = false;
+    
+    // Limpiar badge
+    const badge = document.getElementById('badge-perdido-flotante');
+    if (badge) badge.remove();
+    
+    // Detener GPS y timer
+    if (paseoWatchId !== null) {
+      navigator.geolocation.clearWatch(paseoWatchId);
+      paseoWatchId = null;
+    }
+    if (paseoTimerId) {
+      clearInterval(paseoTimerId);
+      paseoTimerId = null;
+    }
+    
+    // Cerrar pantalla sin mostrar resumen
+    const pantalla = document.getElementById('pantalla-paseo-activo');
+    if (pantalla) pantalla.remove();
+    
+    // Aviso amigable
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:#6B7280;color:#fff;padding:14px 24px;border-radius:24px;z-index:100000;font-size:14px;font-weight:800;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:fadeInUp 0.3s ease;text-align:center;max-width:280px;';
+    t.innerHTML = '\ud83d\udc4b Paseo cancelado<br><span style="font-size:11px;opacity:0.9;">Camina m\u00e1s tiempo la pr\u00f3xima vez</span>';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+    return;
+  }
+  
+  if (!confirm('\u00bfTerminar el paseo?')) return;
   
   paseoActivo = false;
   
@@ -6253,7 +6295,7 @@ function finalizarPaseo() {
     paseoTimerId = null;
   }
   
-  const duracionMin = Math.floor((Date.now() - paseoInicio) / 60000);
+  const duracionMin = Math.max(1, Math.floor((Date.now() - paseoInicio) / 60000));
   const calorias = paseoDistancia * 52; // ~52 cal/km para persona promedio
   
   // Guardar paseo

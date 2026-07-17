@@ -6110,52 +6110,48 @@ function iniciarContadorPasos() {
   }
 }
 
-// Actualizar UI de pasos - HÍBRIDO INTELIGENTE
+// Actualizar UI de pasos - SISTEMA SIMPLE Y ROBUSTO
 function actualizarPasosUI() {
-  // Estimación por distancia (backup si acelerómetro falla)
+  // 1. Determinar pasos reales
+  // Si el acelerómetro cuenta poco vs distancia GPS, usar estimación
   const pasosEstimadosPorDistancia = Math.round(paseoDistancia * 1300);
+  let pasosReales = paseoPasos;
   
-  // Aplicar backup si:
-  // - Distancia significativa (>30m)
-  // - Y acelerómetro detectó menos del 40% de lo esperado
-  let pasosMostrados = paseoPasos;
   if (paseoDistancia > 0.03 && paseoPasos < pasosEstimadosPorDistancia * 0.4) {
-    pasosMostrados = pasosEstimadosPorDistancia;
+    pasosReales = pasosEstimadosPorDistancia;
     paseoPasos = pasosEstimadosPorDistancia;
   }
   
-  const el = document.getElementById('paseo-pasos');
-  if (el) el.textContent = pasosMostrados.toLocaleString();
+  // 2. Si NO hay distancia GPS pero SÍ hay pasos → estimar distancia
+  if (pasosReales > 30 && paseoDistancia < (pasosReales / 1300) * 0.5) {
+    paseoDistancia = pasosReales / 1300;
+  }
   
-  // ⚡ FALLBACK CRÍTICO: Si tienes pasos pero NO distancia (GPS falló)
-  // Estimar distancia desde los pasos
-  if (paseoPasos > 30 && paseoDistancia < 0.03) {
-    // 1300 pasos = 1 km, entonces cada paso = 0.00077 km
-    const distanciaEstimada = paseoPasos / 1300;
-    paseoDistancia = distanciaEstimada;
-    
-    // Actualizar UI de distancia
-    const distEl = document.getElementById('paseo-distancia');
-    if (distEl) distEl.textContent = paseoDistancia.toFixed(2);
-    
-    // Actualizar calorías
-    const calEl = document.getElementById('paseo-calorias');
-    if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
-    
-    // Actualizar ritmo (min/km)
-    const ritmo = calcularRitmo();
-    const ritmoEl = document.getElementById('paseo-ritmo');
-    if (ritmoEl) ritmoEl.textContent = formatearRitmo(ritmo);
-    
-    // Actualizar velocidad
-    const velEl = document.getElementById('paseo-velocidad');
-    if (velEl && ritmo) {
+  // 3. Actualizar UI - SIEMPRE
+  const pasosEl = document.getElementById('paseo-pasos');
+  if (pasosEl) pasosEl.textContent = pasosReales.toLocaleString();
+  
+  const distEl = document.getElementById('paseo-distancia');
+  if (distEl) distEl.textContent = paseoDistancia.toFixed(2);
+  
+  const calEl = document.getElementById('paseo-calorias');
+  if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
+  
+  // 4. Calcular y mostrar ritmo (si hay distancia significativa)
+  const ritmo = calcularRitmo();
+  const ritmoEl = document.getElementById('paseo-ritmo');
+  if (ritmoEl) ritmoEl.textContent = formatearRitmo(ritmo);
+  
+  const velEl = document.getElementById('paseo-velocidad');
+  if (velEl) {
+    if (ritmo) {
       velEl.textContent = (60 / ritmo).toFixed(1);
+    } else {
+      velEl.textContent = '0';
     }
   }
   
-  // 🐕 SIEMPRE actualizar datos del perro si hay mascota
-  // (independiente de si hay GPS o no)
+  // 5. Actualizar datos del perro si hay mascota
   if (paseoMascota) {
     actualizarDatosPerro();
   }

@@ -305,7 +305,7 @@
     <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,0.3);animation:sp-ring 2s ease-out infinite;"></div>
     <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,0.2);animation:sp-ring 2s ease-out infinite 0.6s;"></div>
     <div style="width:120px;height:120px;border-radius:28px;overflow:hidden;border:3px solid rgba(255,255,255,0.3);animation:sp-float 3s ease-in-out infinite;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-      <img src="/icon-512.png" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentNode.style.background='#5B21B6';this.parentNode.style.display='flex';this.parentNode.style.alignItems='center';this.parentNode.style.justifyContent='center';this.parentNode.innerHTML='🐾';this.parentNode.style.fontSize='56px'"/>
+      <img src="/icon-512.png" style="width:100%;height:100%;object-fit:cover;" onerror="try{var p=this.parentNode;this.style.display='none';if(p){p.style.background='#5B21B6';p.style.display='flex';p.style.alignItems='center';p.style.justifyContent='center';p.style.fontSize='56px';p.innerHTML='🐾';}}catch(e){}"/>
     </div>
   </div>
   <div style="text-align:center;animation:sp-fade 0.6s ease 0.2s both;">
@@ -6129,7 +6129,7 @@ function actualizarPasosUI() {
   
   // ⚡ FALLBACK CRÍTICO: Si tienes pasos pero NO distancia (GPS falló)
   // Estimar distancia desde los pasos
-  if (paseoPasos > 100 && paseoDistancia < 0.05) {
+  if (paseoPasos > 30 && paseoDistancia < 0.03) {
     // 1300 pasos = 1 km, entonces cada paso = 0.00077 km
     const distanciaEstimada = paseoPasos / 1300;
     paseoDistancia = distanciaEstimada;
@@ -6142,7 +6142,21 @@ function actualizarPasosUI() {
     const calEl = document.getElementById('paseo-calorias');
     if (calEl) calEl.textContent = Math.round(paseoDistancia * 52);
     
-    // Actualizar datos del perro
+    // Actualizar ritmo (min/km)
+    const ritmo = calcularRitmo();
+    const ritmoEl = document.getElementById('paseo-ritmo');
+    if (ritmoEl) ritmoEl.textContent = formatearRitmo(ritmo);
+    
+    // Actualizar velocidad
+    const velEl = document.getElementById('paseo-velocidad');
+    if (velEl && ritmo) {
+      velEl.textContent = (60 / ritmo).toFixed(1);
+    }
+  }
+  
+  // 🐕 SIEMPRE actualizar datos del perro si hay mascota
+  // (independiente de si hay GPS o no)
+  if (paseoMascota) {
     actualizarDatosPerro();
   }
 }
